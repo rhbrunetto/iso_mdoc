@@ -1,0 +1,27 @@
+name: iso_mdoc
+description: A sample command-line application.
+version: 1.0.0
+# repository: https://github.com/my_org/my_repo
+
+environment:
+  sdk: ^3.0.0
+
+# Add regular dependencies here.
+dependencies:
+  convert: ^3.1.1
+  cbor: ^6.2.0
+  uuid: ^4.3.3
+  x509b:
+    git:
+      url: https://github.com/SaOtto/x509/
+      ref: verification
+  crypto_keys: ^0.3.0+1
+  crypto: ^3.0.3
+  ed25519_edwards: ^0.3.1
+  elliptic: ^0.3.10
+  cryptography: ^2.7.0
+  x25519: ^0.1.1
+
+dev_dependencies:
+  lints: ^3.0.0
+  test: ^1.21.0
