@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:cbor/cbor.dart';
 import 'package:convert/convert.dart';
 import 'package:ed25519_edwards/ed25519_edwards.dart' as ed;
-import 'package:elliptic/elliptic.dart' as elliptic;
+import 'package:pointycastle/export.dart' as pc;
 import 'package:x25519/x25519.dart' as x25519;
 import 'package:x509b/x509.dart';
 
@@ -127,30 +127,6 @@ class CoseKey {
           crv: CoseCurve.ed25519,
           x: key.publicKey.bytes,
           d: key.privateKey.bytes);
-    } else if (curve == CoseCurve.p256) {
-      var key = elliptic.getP256().generatePrivateKey();
-      tmp = CoseKey(
-          kty: CoseKeyType.ec2,
-          crv: CoseCurve.p256,
-          d: key.bytes,
-          x: unsignedIntToBytes(key.publicKey.X),
-          y: unsignedIntToBytes(key.publicKey.Y));
-    } else if (curve == CoseCurve.p384) {
-      var key = elliptic.getP384().generatePrivateKey();
-      tmp = CoseKey(
-          kty: CoseKeyType.ec2,
-          crv: CoseCurve.p384,
-          d: key.bytes,
-          x: unsignedIntToBytes(key.publicKey.X),
-          y: unsignedIntToBytes(key.publicKey.Y));
-    } else if (curve == CoseCurve.p521) {
-      var key = elliptic.getP521().generatePrivateKey();
-      tmp = CoseKey(
-          kty: CoseKeyType.ec2,
-          crv: CoseCurve.p521,
-          d: key.bytes,
-          x: unsignedIntToBytes(key.publicKey.X),
-          y: unsignedIntToBytes(key.publicKey.Y));
     } else if (curve == CoseCurve.x25519) {
       var key = x25519.generateKeyPair();
       tmp = CoseKey(
@@ -159,7 +135,34 @@ class CoseKey {
           d: key.privateKey,
           x: key.publicKey);
     } else {
-      throw Exception('Unsupported curve: $curve');
+      final curveMap = {
+        CoseCurve.p256: pc.ECCurve_secp256r1(),
+        CoseCurve.p384: pc.ECCurve_secp384r1(),
+        CoseCurve.p521: pc.ECCurve_secp521r1(),
+        CoseCurve.brainpoolP256r1: pc.ECCurve_brainpoolp256r1(),
+        CoseCurve.brainpoolP320r1: pc.ECCurve_brainpoolp320r1(),
+        CoseCurve.brainpoolP384r1: pc.ECCurve_brainpoolp384r1(),
+        CoseCurve.brainpoolP512r1: pc.ECCurve_brainpoolp512r1()
+      };
+      var pcCurve = curveMap[curve];
+      if (pcCurve == null) {
+        throw Exception('Unsupported curve: $curve');
+      }
+      var keyGen = pc.ECKeyGenerator();
+      keyGen.init(pc.ParametersWithRandom(
+          pc.ECKeyGeneratorParameters(pcCurve), getSecureRandom()));
+      var newKey = keyGen.generateKeyPair();
+      tmp = CoseKey(
+          kty: CoseKeyType.ec2,
+          crv: curve,
+          x: unsignedIntToBytes(
+                  (newKey.publicKey as pc.ECPublicKey).Q!.x!.toBigInteger()!)
+              .toList(),
+          y: unsignedIntToBytes(
+                  (newKey.publicKey as pc.ECPublicKey).Q!.y!.toBigInteger()!)
+              .toList(),
+          d: unsignedIntToBytes((newKey.privateKey as pc.ECPrivateKey).d!)
+              .toList());
     }
 
     return tmp;

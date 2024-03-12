@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:crypto_keys/crypto_keys.dart';
 import 'package:cryptography/cryptography.dart' as crypto;
 import 'package:ed25519_edwards/ed25519_edwards.dart' as ed;
 import 'package:elliptic/ecdh.dart' as ecdh;
 import 'package:elliptic/elliptic.dart' as elliptic;
+import 'package:pointycastle/export.dart' as pc;
 
 import 'cose_objects.dart';
 import 'private_util.dart';
@@ -18,11 +18,15 @@ abstract class SignatureGenerator {
   factory SignatureGenerator.get(CoseKey key) {
     if (key.crv == CoseCurve.ed25519) {
       return Ed25519Signer(key);
-    } else if (key.crv == CoseCurve.p256) {
+    } else if (key.crv == CoseCurve.p256 ||
+        key.crv == CoseCurve.brainpoolP256r1) {
       return Es256Signer(key);
-    } else if (key.crv == CoseCurve.p384) {
+    } else if (key.crv == CoseCurve.p384 ||
+        key.crv == CoseCurve.brainpoolP384r1 ||
+        key.crv == CoseCurve.brainpoolP320r1) {
       return Es384Signer(key);
-    } else if (key.crv == CoseCurve.p521) {
+    } else if (key.crv == CoseCurve.p521 ||
+        key.crv == CoseCurve.brainpoolP512r1) {
       return Es512Signer(key);
     } else {
       throw Exception('Unsupported Curve: ${key.crv}');
@@ -59,79 +63,169 @@ class Ed25519Signer extends SignatureGenerator {
 
 class Es256Signer extends SignatureGenerator {
   CoseKey key;
+  pc.ECDomainParameters curve;
+  final _generator = pc.ECDSASigner(pc.SHA256Digest(), null);
+  static final _curveParams = {
+    CoseCurve.p256: pc.ECCurve_secp256r1(),
+    CoseCurve.brainpoolP256r1: pc.ECCurve_brainpoolp256r1()
+  };
 
-  Es256Signer(this.key) : super(CoseAlgorithm.es256);
+  Es256Signer(this.key)
+      : curve = _curveParams.containsKey(key.crv)
+            ? _curveParams[key.crv]!
+            : throw ArgumentError(),
+        super(CoseAlgorithm.es256);
 
   @override
   List<int> generate(List<int> data) {
-    var private = EcPrivateKey(
-        eccPrivateKey: bytesToUnsignedInt(key.d!), curve: curves.p256);
+    var private = pc.ECPrivateKey(bytesToUnsignedInt(key.d!), curve);
 
-    var signer = private.createSigner(algorithms.signing.ecdsa.sha256);
-    return signer.sign(data).data.toList();
+    _generator.init(
+        true,
+        pc.ParametersWithRandom(
+            pc.PrivateKeyParameter<pc.ECPrivateKey>(private),
+            getSecureRandom()));
+
+    var sig = _generator.generateSignature(Uint8List.fromList(data))
+        as pc.ECSignature;
+    return unsignedIntToBytes(sig.r).toList() +
+        unsignedIntToBytes(sig.s).toList();
   }
 
   @override
   bool verify(List<int> data, List<int> toVerify) {
-    var pubKey = EcPublicKey(
-        xCoordinate: bytesToUnsignedInt(key.x!),
-        yCoordinate: bytesToUnsignedInt(key.y!),
-        curve: curves.p256);
-    var verifier = pubKey.createVerifier(algorithms.signing.ecdsa.sha256);
-    return verifier.verify(
-        Uint8List.fromList(data), Signature(Uint8List.fromList(toVerify)));
+    var pubKey = pc.ECPublicKey(
+        curve.curve.createPoint(
+            bytesToUnsignedInt(key.x!), bytesToUnsignedInt(key.y!)),
+        curve);
+
+    var s = toVerify.length ~/ 2;
+
+    _generator.init(
+      false,
+      pc.PublicKeyParameter<pc.PublicKey>(pubKey),
+    );
+    return _generator.verifySignature(
+        Uint8List.fromList(data),
+        pc.ECSignature(bytesToUnsignedInt(toVerify.sublist(0, s)),
+            bytesToUnsignedInt(toVerify.sublist(s))));
   }
 }
 
 class Es384Signer extends SignatureGenerator {
   CoseKey key;
+  pc.ECDomainParameters curve;
+  final _generator = pc.ECDSASigner(pc.SHA384Digest(), null);
+  static final _curveParams = {
+    CoseCurve.p384: pc.ECCurve_secp384r1(),
+    CoseCurve.brainpoolP384r1: pc.ECCurve_brainpoolp384r1(),
+    CoseCurve.brainpoolP320r1: pc.ECCurve_brainpoolp320r1()
+  };
 
-  Es384Signer(this.key) : super(CoseAlgorithm.es384);
+  Es384Signer(this.key)
+      : curve = _curveParams.containsKey(key.crv)
+            ? _curveParams[key.crv]!
+            : throw ArgumentError(),
+        super(CoseAlgorithm.es384);
 
   @override
   List<int> generate(List<int> data) {
-    var private = EcPrivateKey(
-        eccPrivateKey: bytesToUnsignedInt(key.d!), curve: curves.p384);
+    var private = pc.ECPrivateKey(bytesToUnsignedInt(key.d!), curve);
 
-    var signer = private.createSigner(algorithms.signing.ecdsa.sha384);
-    return signer.sign(data).data.toList();
+    _generator.init(
+        true,
+        pc.ParametersWithRandom(
+            pc.PrivateKeyParameter<pc.ECPrivateKey>(private),
+            getSecureRandom()));
+
+    var sig = _generator.generateSignature(Uint8List.fromList(data))
+        as pc.ECSignature;
+    var rList = unsignedIntToBytes(sig.r).toList();
+    while (rList.length < 48) {
+      rList = [0] + rList;
+    }
+    var sList = unsignedIntToBytes(sig.s).toList();
+    while (sList.length < 48) {
+      sList = [0] + sList;
+    }
+    return rList + sList;
   }
 
   @override
   bool verify(List<int> data, List<int> toVerify) {
-    var pubKey = EcPublicKey(
-        xCoordinate: bytesToUnsignedInt(key.x!),
-        yCoordinate: bytesToUnsignedInt(key.y!),
-        curve: curves.p384);
-    var verifier = pubKey.createVerifier(algorithms.signing.ecdsa.sha384);
-    return verifier.verify(
-        Uint8List.fromList(data), Signature(Uint8List.fromList(toVerify)));
+    var pubKey = pc.ECPublicKey(
+        curve.curve.createPoint(
+            bytesToUnsignedInt(key.x!), bytesToUnsignedInt(key.y!)),
+        curve);
+
+    var s = toVerify.length ~/ 2;
+
+    _generator.init(
+      false,
+      pc.PublicKeyParameter<pc.PublicKey>(pubKey),
+    );
+    return _generator.verifySignature(
+        Uint8List.fromList(data),
+        pc.ECSignature(bytesToUnsignedInt(toVerify.sublist(0, s)),
+            bytesToUnsignedInt(toVerify.sublist(s))));
   }
 }
 
 class Es512Signer extends SignatureGenerator {
   CoseKey key;
+  pc.ECDomainParameters curve;
+  final _generator = pc.ECDSASigner(pc.SHA512Digest(), null);
+  static final _curveParams = {
+    CoseCurve.p521: pc.ECCurve_secp521r1(),
+    CoseCurve.brainpoolP512r1: pc.ECCurve_brainpoolp512r1()
+  };
 
-  Es512Signer(this.key) : super(CoseAlgorithm.es512);
+  Es512Signer(this.key)
+      : curve = _curveParams.containsKey(key.crv)
+            ? _curveParams[key.crv]!
+            : throw ArgumentError(),
+        super(CoseAlgorithm.es512);
 
   @override
   List<int> generate(List<int> data) {
-    var private = EcPrivateKey(
-        eccPrivateKey: bytesToUnsignedInt(key.d!), curve: curves.p521);
+    var private = pc.ECPrivateKey(bytesToUnsignedInt(key.d!), curve);
 
-    var signer = private.createSigner(algorithms.signing.ecdsa.sha512);
-    return signer.sign(data).data.toList();
+    _generator.init(
+        true,
+        pc.ParametersWithRandom(
+            pc.PrivateKeyParameter<pc.ECPrivateKey>(private),
+            getSecureRandom()));
+
+    var sig = _generator.generateSignature(Uint8List.fromList(data))
+        as pc.ECSignature;
+    var rList = unsignedIntToBytes(sig.r).toList();
+    while (rList.length < 66) {
+      rList = [0] + rList;
+    }
+    var sList = unsignedIntToBytes(sig.s).toList();
+    while (sList.length < 66) {
+      sList = [0] + sList;
+    }
+    return rList + sList;
   }
 
   @override
   bool verify(List<int> data, List<int> toVerify) {
-    var pubKey = EcPublicKey(
-        xCoordinate: bytesToUnsignedInt(key.x!),
-        yCoordinate: bytesToUnsignedInt(key.y!),
-        curve: curves.p521);
-    var verifier = pubKey.createVerifier(algorithms.signing.ecdsa.sha512);
-    return verifier.verify(
-        Uint8List.fromList(data), Signature(Uint8List.fromList(toVerify)));
+    var pubKey = pc.ECPublicKey(
+        curve.curve.createPoint(
+            bytesToUnsignedInt(key.x!), bytesToUnsignedInt(key.y!)),
+        curve);
+
+    var s = toVerify.length ~/ 2;
+
+    _generator.init(
+      false,
+      pc.PublicKeyParameter<pc.PublicKey>(pubKey),
+    );
+    return _generator.verifySignature(
+        Uint8List.fromList(data),
+        pc.ECSignature(bytesToUnsignedInt(toVerify.sublist(0, s)),
+            bytesToUnsignedInt(toVerify.sublist(s))));
   }
 }
 
@@ -152,7 +246,7 @@ abstract class KeyAgreement {
       return P521KeyAgreement(publicKey: publicKey, privateKey: privateKey);
     } else {
       throw Exception(
-          'Unsupported curve or different curves in keys (Public: ${publicKey.crv}, private: ${privateKey.crv}');
+          'Unsupported curve or different curves in keys (Public: ${publicKey.crv}, private: ${privateKey.crv})');
     }
   }
 

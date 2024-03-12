@@ -15,12 +15,12 @@ dependencies:
     git:
       url: https://github.com/SaOtto/x509/
       ref: verification
-  crypto_keys: ^0.3.0+1
   crypto: ^3.0.3
   ed25519_edwards: ^0.3.1
   elliptic: ^0.3.10
   cryptography: ^2.7.0
   x25519: ^0.1.1
+  pointycastle: ^3.7.4
 
 dev_dependencies:
   lints: ^3.0.0

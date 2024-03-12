@@ -98,7 +98,7 @@ packages:
     source: hosted
     version: "3.0.3"
   crypto_keys:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: crypto_keys
       sha256: acc19abf34623d990a0e8aec69463d74a824c31f137128f42e2810befc509ad0
@@ -290,7 +290,7 @@ packages:
     source: hosted
     version: "1.9.0"
   pointycastle:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: pointycastle
       sha256: "43ac87de6e10afabc85c445745a7b799e04de84cebaa4fd7bf55a5e1e9604d29"

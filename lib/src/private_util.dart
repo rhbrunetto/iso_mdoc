@@ -1,4 +1,7 @@
+import 'dart:math';
 import 'dart:typed_data';
+
+import 'package:pointycastle/export.dart' as pc;
 
 String addPaddingToBase64(String base64Input) {
   while (base64Input.length % 4 != 0) {
@@ -64,4 +67,15 @@ BigInt bytesToUnsignedInt(List<int> magnitude) {
     result = result.toUnsigned(result.bitLength);
   }
   return result;
+}
+
+pc.SecureRandom getSecureRandom() {
+  final secureRandom = pc.FortunaRandom();
+
+  var random = Random.secure();
+  var seed = List.generate(32, (index) => random.nextInt(256));
+
+  secureRandom.seed(pc.KeyParameter(Uint8List.fromList(seed)));
+
+  return secureRandom;
 }
