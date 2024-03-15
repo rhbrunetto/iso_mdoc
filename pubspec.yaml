@@ -1,7 +1,8 @@
 name: iso_mdoc
 description: Library for handling datastructures described in ISO/IEC 18013-5.
 version: 1.0.0
-# repository: https://github.com/my_org/my_repo
+repository: https://github.com/b2cm/iso_mdoc
+homepage: https://github.com/b2cm/iso_mdoc
 
 environment:
   sdk: ^3.0.0
