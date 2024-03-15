@@ -16,6 +16,12 @@ class DeviceResponse {
       this.documentErrors,
       required this.status});
 
+  /// Parse cbor encoded device response
+  ///
+  /// [cborData] is allowed to be
+  /// - a hex encoded string containing cbor encoded data
+  /// - a List<int> of cbor encoded data
+  /// - a CborMap
   factory DeviceResponse.fromCbor(dynamic cborData) {
     assert(
         cborData is String || cborData is List<int> || cborData is CborValue);
@@ -77,7 +83,8 @@ class Document {
   String docType;
   IssuerSignedObject issuerSigned;
   DeviceSignedObject deviceSigned;
-  // {nameSpace : {DataElementIdentifier : ErrorCode}}
+
+  /// {nameSpace : {DataElementIdentifier : ErrorCode}}
   Map<String, Map<String, int>>? errors;
 
   Document(
@@ -86,6 +93,12 @@ class Document {
       required this.deviceSigned,
       this.errors});
 
+  /// Parse cbor encoded document contained in device response
+  ///
+  /// [cborData] is allowed to be
+  /// - a hex encoded string containing cbor encoded data
+  /// - a List<int> of cbor encoded data
+  /// - a CborMap
   factory Document.fromCbor(dynamic cborData) {
     assert(
         cborData is String || cborData is List<int> || cborData is CborValue);
@@ -131,7 +144,7 @@ class Document {
 }
 
 class DeviceSignedObject {
-  //{nameSpace : {DataElementIdentifier : DataElementValue}}
+  ///{nameSpace : {DataElementIdentifier : DataElementValue}}
   Map<String, Map<String, dynamic>> nameSpaces;
   CborBytes nameSpaceBytes;
   CoseSign1? deviceSignature;
@@ -150,6 +163,12 @@ class DeviceSignedObject {
                         MapEntry(CborString(key), CborValue(value)))))))),
                 tags: [24]);
 
+  /// Parse cbor encoded device signed object
+  ///
+  /// [cborData] is allowed to be
+  /// - a hex encoded string containing cbor encoded data
+  /// - a List<int> of cbor encoded data
+  /// - a CborMap
   factory DeviceSignedObject.fromCbor(dynamic cborData) {
     assert(
         cborData is String || cborData is List<int> || cborData is CborValue);
@@ -245,6 +264,13 @@ class SessionTranscript {
       required this.keyBytes,
       this.handover});
 
+  /// Parse cbor encoded session transcript
+  ///
+  /// [cborData] is allowed to be
+  /// - a hex encoded string containing cbor encoded data
+  /// - a List<int> of cbor encoded data
+  /// - a CborList
+  /// - CborBytes with tag 24, which means that these bytes are a cbor encoded value
   factory SessionTranscript.fromCbor(dynamic cborData) {
     assert(
         cborData is String || cborData is List<int> || cborData is CborValue);
@@ -292,6 +318,12 @@ class Handover {
 
   Handover({required this.handoverSelectMessage, this.handoverRequestMessage});
 
+  /// Parse cbor encoded handover message
+  ///
+  /// [cborData] is allowed to be
+  /// - a hex encoded string containing cbor encoded data
+  /// - a List<int> of cbor encoded data
+  /// - a CborList
   factory Handover.fromCbor(dynamic cborData) {
     assert(
         cborData is String || cborData is List<int> || cborData is CborValue);
@@ -328,6 +360,12 @@ class SessionData {
 
   SessionData({this.statusCode, this.encryptedData});
 
+  /// Parse cbor encoded session data
+  ///
+  /// [cborData] is allowed to be
+  /// - a hex encoded string containing cbor encoded data
+  /// - a List<int> of cbor encoded data
+  /// - a CborMap
   factory SessionData.fromCbor(dynamic cborData) {
     assert(
         cborData is String || cborData is List<int> || cborData is CborValue);

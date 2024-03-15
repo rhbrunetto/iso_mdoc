@@ -194,7 +194,7 @@ Future<bool> verifyDeviceResponse(
       }
 
       var keyAgreement =
-          KeyAgreement(privateKey: readerPrivateKey, publicKey: sDeviceKey);
+          KeyAgreement.get(privateKey: readerPrivateKey, publicKey: sDeviceKey);
       var macSecret = await keyAgreement.generateSymmetricKey();
 
       var hkdf = pc.HKDFKeyDerivator(pc.SHA256Digest());

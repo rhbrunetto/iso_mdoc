@@ -12,6 +12,7 @@ import 'package:x25519/x25519.dart' as x25519;
 import 'crypto_generator.dart';
 import 'private_util.dart';
 
+/// Cose Key Object
 class CoseKey {
   int kty;
   List<int>? kid;
@@ -37,6 +38,13 @@ class CoseKey {
       CborBytes? keyBytes})
       : _keyBytes = keyBytes;
 
+  /// Parse cbor encoded key
+  ///
+  /// [cborData] is allowed to be
+  /// - a hex encoded string containing cbor encoded data
+  /// - a List<int> of cbor encoded data
+  /// - a CborMap
+  /// - CborBytes with tag 24, which means that these bytes are a cbor encoded value
   factory CoseKey.fromCbor(dynamic cborData) {
     assert(
         cborData is String || cborData is List<int> || cborData is CborValue);
@@ -83,6 +91,10 @@ class CoseKey {
         keyBytes: keyBytesTmp);
   }
 
+  /// Parse a public key from a X509 certificate
+  ///
+  /// [x509Certificate] is the base64 encoded certificate WITHOUT the
+  /// ----- BEGIN Certificate ----- and ----- END CERTIFICATE ------ marker.
   factory CoseKey.fromCertificate(String x509Certificate) {
     var p = asn1.ASN1Parser(base64Decode(x509Certificate));
     var certSequence = p.nextObject() as asn1.ASN1Sequence;
@@ -151,6 +163,7 @@ class CoseKey {
     return tmp;
   }
 
+  /// Generates a new private key with the given elliptic curve
   factory CoseKey.generate(int curve) {
     CoseKey tmp;
     if (curve == CoseCurve.ed25519) {
@@ -192,6 +205,7 @@ class CoseKey {
     return tmp;
   }
 
+  /// Turns a private key into an public key
   CoseKey toPublicKey() {
     if (d == null) {
       return this;
@@ -207,7 +221,36 @@ class CoseKey {
           additionalData: additionalData,
           baseIV: baseIV);
     } else {
-      throw UnimplementedError();
+      if (crv == CoseCurve.ed25519) {
+        var private = ed.newKeyFromSeed(Uint8List.fromList(d!));
+        return CoseKey(
+            kty: kty,
+            crv: crv,
+            x: ed.public(private).bytes,
+            alg: alg,
+            keyOps: keyOps,
+            kid: kid,
+            additionalData: additionalData,
+            baseIV: baseIV);
+      } else {
+        var curve = coseCurveToPointyCastleCurve[crv];
+        if (curve == null) {
+          throw UnsupportedError('Unsupported Curve: $crv');
+        }
+        var private =
+            pc.ECPrivateKey(bytesToUnsignedInt(Uint8List.fromList(d!)), curve);
+        var q = curve.G * private.d;
+        return CoseKey(
+            kty: kty,
+            crv: crv,
+            x: unsignedIntToBytes(q!.x!.toBigInteger()!),
+            y: unsignedIntToBytes(q.y!.toBigInteger()!),
+            alg: alg,
+            keyOps: keyOps,
+            kid: kid,
+            additionalData: additionalData,
+            baseIV: baseIV);
+      }
     }
   }
 
@@ -261,6 +304,7 @@ class CoseKey {
   }
 }
 
+/// Cose Mac0 Structure
 class CoseMac0 {
   CoseHeader protected;
   CoseHeader unprotected;
@@ -273,6 +317,12 @@ class CoseMac0 {
       this.payload,
       this.mac});
 
+  /// Parse cbor encoded mac
+  ///
+  /// [cborData] is allowed to be
+  /// - a hex encoded string containing cbor encoded data
+  /// - a List<int> of cbor encoded data
+  /// - a CborList
   factory CoseMac0.fromCbor(dynamic cborData) {
     assert(
         cborData is String || cborData is List<int> || cborData is CborValue);
@@ -291,6 +341,7 @@ class CoseMac0 {
         mac: (asList[3] as CborBytes).bytes);
   }
 
+  /// Generates the macStructure over which the MAC is computed
   List<int> generateMacStructure(
       {List<int>? externalAad, dynamic externalPayload}) {
     externalAad ??= [];
@@ -350,6 +401,7 @@ class CoseMac0 {
   }
 }
 
+/// Cose Sign1 Structure
 class CoseSign1 {
   CoseHeader protected;
   CoseHeader unprotected;
@@ -364,6 +416,12 @@ class CoseSign1 {
       this.signature,
       this.protectedEncoded});
 
+  /// Parse cbor encoded signature object
+  ///
+  /// [cborData] is allowed to be
+  /// - a hex encoded string containing cbor encoded data
+  /// - a List<int> of cbor encoded data
+  /// - a CborList
   factory CoseSign1.fromCbor(dynamic cborData) {
     assert(cborData is String || cborData is List<int> || cborData is CborList);
     CborList asList;
@@ -385,6 +443,7 @@ class CoseSign1 {
         protectedEncoded: (asList[0] as CborBytes).bytes);
   }
 
+  /// Generates the intermediate data over which the signature is computed
   String generateIntermediate({dynamic externalPayload}) {
     var protectedEnc = protectedEncoded ?? protected.toEncodedCbor();
     var data = [
@@ -447,6 +506,7 @@ class CoseSign1 {
   }
 }
 
+/// Cose Header for signature and mac
 class CoseHeader {
   int? algorithm;
   List<int>? critical;
@@ -473,6 +533,12 @@ class CoseHeader {
       this.partialIv,
       this.x509chain});
 
+  /// Parse cbor encoded key
+  ///
+  /// [cborData] is allowed to be
+  /// - a hex encoded string containing cbor encoded data
+  /// - a List<int> of cbor encoded data
+  /// - a CborMap
   factory CoseHeader.fromCbor(dynamic cborData) {
     assert(cborData is String || cborData is List<int> || cborData is CborMap);
     CborMap asMap;
@@ -514,6 +580,7 @@ class CoseHeader {
   }
 }
 
+/// Helper class listing cose algorithm values (used in alg header parameter)
 class CoseAlgorithm {
   static final int aes128kw = -3;
   static final int aes192kw = -4;
@@ -548,6 +615,7 @@ class CoseKeyType {
   static final int symmetric = 4;
 }
 
+/// Helper class listing cose elliptic curves (used in crv header parameter)
 class CoseCurve {
   static final int p256 = 1;
   static final int p384 = 2;

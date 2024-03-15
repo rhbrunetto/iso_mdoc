@@ -8,11 +8,16 @@ import 'package:x25519/x25519.dart' as x25519;
 import 'cose_objects.dart';
 import 'private_util.dart';
 
+/// Base class for signature generation
+///
+/// extend these class if you would like to use your own signature
+/// generator, e.g. if you prefer hardware cryptography
 abstract class SignatureGenerator {
   final int supportedCoseAlgorithm;
 
   SignatureGenerator(this.supportedCoseAlgorithm);
 
+  /// Returns a suitable signatureGenerator the [key] based on the crv value of [key].
   factory SignatureGenerator.get(CoseKey key) {
     if (key.crv == CoseCurve.ed25519) {
       return Ed25519Signer(key);
@@ -30,10 +35,15 @@ abstract class SignatureGenerator {
       throw Exception('Unsupported Curve: ${key.crv}');
     }
   }
+
+  /// Generates the signature over [data].
   FutureOr<List<int>> generate(List<int> data);
+
+  /// Verifies the signature [toVerify] over [data].
   FutureOr<bool> verify(List<int> data, List<int> toVerify);
 }
 
+/// Signature generator for ED25519 Signatures
 class Ed25519Signer extends SignatureGenerator {
   CoseKey key;
 
@@ -59,6 +69,7 @@ class Ed25519Signer extends SignatureGenerator {
   }
 }
 
+/// Signature generator for ECDSA with SHA-256
 class Es256Signer extends SignatureGenerator {
   CoseKey key;
   pc.ECDomainParameters curve;
@@ -110,6 +121,7 @@ class Es256Signer extends SignatureGenerator {
   }
 }
 
+/// Signature generator for ECDSA with SHA-384
 class Es384Signer extends SignatureGenerator {
   CoseKey key;
   pc.ECDomainParameters curve;
@@ -169,6 +181,7 @@ class Es384Signer extends SignatureGenerator {
   }
 }
 
+/// Signature generator for ECDSA with SHA-512
 class Es512Signer extends SignatureGenerator {
   CoseKey key;
   pc.ECDomainParameters curve;
@@ -227,8 +240,12 @@ class Es512Signer extends SignatureGenerator {
   }
 }
 
+/// Base class for key agreement generation.
+///
+/// Extend this class, if you would like your own implementation for key agreements
 abstract class KeyAgreement {
-  factory KeyAgreement(
+  /// returns a suitable key agreement generator based on the crv value og the given keys
+  factory KeyAgreement.get(
       {required CoseKey publicKey, required CoseKey privateKey}) {
     if (publicKey.crv == CoseCurve.x25519 &&
         privateKey.crv == CoseCurve.x25519) {
@@ -239,9 +256,11 @@ abstract class KeyAgreement {
     }
   }
 
+  /// generate shared secret
   FutureOr<List<int>> generateSymmetricKey();
 }
 
+/// X25519 key agreement
 class X25519KeyAgreement implements KeyAgreement {
   CoseKey publicKey, privateKey;
 
@@ -279,10 +298,14 @@ class PointyCastleKeyAgreement implements KeyAgreement {
   }
 }
 
+/// Base class for MAC generation.
+///
+/// Extend this class if you would like to use your own mac implementation.
 abstract class MacGenerator {
   int supportedCoseAlgorithm;
   MacGenerator(this.supportedCoseAlgorithm);
 
+  /// Returns a suitable mac generator based on [coseAlgorithm]
   factory MacGenerator.get(int coseAlgorithm, Uint8List macKey) {
     if (coseAlgorithm == CoseAlgorithm.hmac256) {
       return HMacSha256Generator(macKey);
@@ -290,7 +313,11 @@ abstract class MacGenerator {
       throw UnsupportedError('Unsupported Algorithm: $coseAlgorithm');
     }
   }
+
+  /// generate the MAC value over [data]
   List<int> generate(List<int> data);
+
+  /// verifies [macToVerify] for [data]
   bool verify(List<int> data, List<int> macToVerify);
 }
 

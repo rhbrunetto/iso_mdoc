@@ -160,8 +160,8 @@ void main() async {
   i.items = revealedData;
 
   // Generate DeviceAuth (Mac / Signature)
-  //var signer = SignatureGenerator.get(holderKey);
-  var keyAgreement = KeyAgreement(
+  // var signer = SignatureGenerator.get(holderKey);
+  var keyAgreement = KeyAgreement.get(
       publicKey: decodedEstablishment.eReaderKey, privateKey: holderKey);
   var signedData = await generateDeviceSignature({},
       decodedRequest.docRequests.first.itemsRequest.docType, transcriptHolder,

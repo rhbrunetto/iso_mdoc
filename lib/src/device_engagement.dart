@@ -11,7 +11,8 @@ class DeviceEngagement {
   Security security;
   List<DeviceRetrievalMethod>? deviceRetrievalMethods;
   ServerRetrievalMethod? serverRetrievalMethods;
-  // reserved for future use
+
+  /// reserved for future use
   dynamic protocolInfo;
   Map<int, dynamic>? additionalProperties;
   CborBytes? _deviceEngagementBytes;
@@ -26,6 +27,12 @@ class DeviceEngagement {
       CborBytes? bytes})
       : _deviceEngagementBytes = bytes;
 
+  /// Parse cbor encoded device engagement structure
+  ///
+  /// [cborData] is allowed to be
+  /// - a hex encoded string containing cbor encoded data
+  /// - a List<int> of cbor encoded data
+  /// - a CborMap
   factory DeviceEngagement.fromCbor(dynamic cborData) {
     assert(
         cborData is String || cborData is List<int> || cborData is CborValue);
@@ -130,6 +137,12 @@ class Security {
       required this.deviceKeyBytes,
       this.deviceKey});
 
+  /// Parse cbor encoded security info
+  ///
+  /// [cborData] is allowed to be
+  /// - a hex encoded string containing cbor encoded data
+  /// - a List<int> of cbor encoded data
+  /// - a CborList
   factory Security.fromCbor(dynamic cborData) {
     assert(
         cborData is String || cborData is List<int> || cborData is CborValue);
@@ -168,8 +181,8 @@ class Security {
   }
 }
 
-// type: 1 = NFC, 2 = BLE, 3 = WiFi Aware
 class DeviceRetrievalMethod {
+  /// type: 1 = NFC, 2 = BLE, 3 = WiFi Aware
   int type;
   int version;
   RetrievalOptions options;
@@ -177,6 +190,12 @@ class DeviceRetrievalMethod {
   DeviceRetrievalMethod(
       {required this.type, this.version = 1, required this.options});
 
+  /// Parse cbor encoded device retrieval method
+  ///
+  /// [cborData] is allowed to be
+  /// - a hex encoded string containing cbor encoded data
+  /// - a List<int> of cbor encoded data
+  /// - a CborList
   factory DeviceRetrievalMethod.fromCbor(dynamic cborData) {
     assert(
         cborData is String || cborData is List<int> || cborData is CborValue);
@@ -244,6 +263,12 @@ class WifiOptions extends RetrievalOptions {
       this.channelInfoChannelNumber,
       this.bandInfo});
 
+  /// Parse cbor encoded wifi options
+  ///
+  /// [cborData] is allowed to be
+  /// - a hex encoded string containing cbor encoded data
+  /// - a List<int> of cbor encoded data
+  /// - a CborMap
   factory WifiOptions.fromCbor(dynamic cborData) {
     assert(
         cborData is String || cborData is List<int> || cborData is CborValue);
@@ -302,6 +327,12 @@ class BLEOptions extends RetrievalOptions {
       this.centralClientModeId,
       this.peripheralModeDeviceAddress});
 
+  /// Parse cbor encoded bluetooth low energy options
+  ///
+  /// [cborData] is allowed to be
+  /// - a hex encoded string containing cbor encoded data
+  /// - a List<int> of cbor encoded data
+  /// - a CborMap
   factory BLEOptions.fromCbor(dynamic cborData) {
     assert(
         cborData is String || cborData is List<int> || cborData is CborValue);
@@ -352,6 +383,12 @@ class NfcOptions extends RetrievalOptions {
 
   NfcOptions({required this.maxLengthCommand, required this.maxLengthResponse});
 
+  /// Parse cbor encoded nfc options
+  ///
+  /// [cborData] is allowed to be
+  /// - a hex encoded string containing cbor encoded data
+  /// - a List<int> of cbor encoded data
+  /// - a CborMap
   factory NfcOptions.fromCbor(dynamic cborData) {
     assert(
         cborData is String || cborData is List<int> || cborData is CborValue);
@@ -386,6 +423,12 @@ class ServerRetrievalMethod {
 
   ServerRetrievalMethod({this.webApi, this.oidc});
 
+  /// Parse cbor encoded server retrieval method
+  ///
+  /// [cborData] is allowed to be
+  /// - a hex encoded string containing cbor encoded data
+  /// - a List<int> of cbor encoded data
+  /// - a CborMap
   factory ServerRetrievalMethod.fromCbor(dynamic cborData) {
     assert(
         cborData is String || cborData is List<int> || cborData is CborValue);
@@ -432,6 +475,12 @@ class ApiInfo {
       required this.issuerUrl,
       required this.serverRetrievalToken});
 
+  /// Parse cbor encoded api-info
+  ///
+  /// [cborData] is allowed to be
+  /// - a hex encoded string containing cbor encoded data
+  /// - a List<int> of cbor encoded data
+  /// - a CborList
   factory ApiInfo.fromCbor(dynamic cborData) {
     assert(
         cborData is String || cborData is List<int> || cborData is CborValue);

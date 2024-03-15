@@ -11,6 +11,12 @@ class SessionEstablishment {
   SessionEstablishment(
       {required this.eReaderKey, required this.encryptedRequest});
 
+  /// Parse cbor encoded session establishment message
+  ///
+  /// [cborData] is allowed to be
+  /// - a hex encoded string containing cbor encoded data
+  /// - a List<int> of cbor encoded data
+  /// - a CborMap
   factory SessionEstablishment.fromCbor(dynamic cborData) {
     assert(
         cborData is String || cborData is List<int> || cborData is CborValue);
@@ -48,6 +54,12 @@ class DeviceRequest {
 
   DeviceRequest({this.version = '1.0', required this.docRequests});
 
+  /// Parse cbor encoded device request
+  ///
+  /// [cborData] is allowed to be
+  /// - a hex encoded string containing cbor encoded data
+  /// - a List<int> of cbor encoded data
+  /// - a CborMap
   factory DeviceRequest.fromCbor(dynamic cborData) {
     assert(
         cborData is String || cborData is List<int> || cborData is CborValue);
@@ -94,6 +106,12 @@ class DocRequest {
 
   DocRequest({required this.itemsRequest, this.readerAuthSignature});
 
+  /// Parse cbor encoded document request
+  ///
+  /// [cborData] is allowed to be
+  /// - a hex encoded string containing cbor encoded data
+  /// - a List<int> of cbor encoded data
+  /// - a CborMap
   factory DocRequest.fromCbor(dynamic cborData) {
     assert(
         cborData is String || cborData is List<int> || cborData is CborValue);
@@ -132,13 +150,20 @@ class DocRequest {
 
 class ItemsRequest {
   String docType;
-  // {'nameSpace' : {'dataElementIdentifier' : intentToRetain}}
+
+  /// {'nameSpace' : {'dataElementIdentifier' : intentToRetain}}
   Map<String, Map<String, bool>> nameSpaces;
   Map<String, dynamic>? requesterInfo;
 
   ItemsRequest(
       {required this.docType, required this.nameSpaces, this.requesterInfo});
 
+  /// Parse cbor encoded items request
+  ///
+  /// [cborData] is allowed to be
+  /// - a hex encoded string containing cbor encoded data
+  /// - a List<int> of cbor encoded data
+  /// - a CborMap
   factory ItemsRequest.fromCbor(dynamic cborData) {
     assert(
         cborData is String || cborData is List<int> || cborData is CborValue);

@@ -4,4 +4,6 @@
 /opensslKeys/
 /wallet/
 /wallet2/
-/bin/
+/private/
+
+pubspec.lock

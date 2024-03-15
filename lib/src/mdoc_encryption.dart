@@ -8,24 +8,31 @@ import 'crypto_generator.dart';
 
 enum MdocRole { mdocHolder, mdocReader }
 
+/// Encrypt and decrypt all messages in one session
 class SessionEncryptor {
-  final algorithm = pc.GCMBlockCipher(pc.AESEngine());
-  MdocRole mdocRole;
-  int counterEncrypt, counterDecrypt;
+  final _algorithm = pc.GCMBlockCipher(pc.AESEngine());
+  final MdocRole _mdocRole;
+  int _counterEncrypt, _counterDecrypt;
   // Ephemeral Keys
-  CoseKey myPrivateKey, otherPublicKey;
-  List<int>? encryptionKey, decryptionKey;
+  final CoseKey _myPrivateKey, _otherPublicKey;
+  List<int>? _encryptionKey, _decryptionKey;
 
   SessionEncryptor(
-      {required this.mdocRole,
-      required this.myPrivateKey,
-      required this.otherPublicKey})
-      : counterDecrypt = 1,
-        counterEncrypt = 1;
+      {required MdocRole mdocRole,
+      required CoseKey myPrivateKey,
+      required CoseKey otherPublicKey})
+      : _otherPublicKey = otherPublicKey,
+        _myPrivateKey = myPrivateKey,
+        _mdocRole = mdocRole,
+        _counterDecrypt = 1,
+        _counterEncrypt = 1;
 
+  /// Derive symmetric keys to encrypt and decrypt messages.
+  ///
+  /// Call this method before starting encrypting or decryption messages.
   Future<void> generateKeys(List<int> sessionTranscriptBytes) async {
     var keyAgreement =
-        KeyAgreement(privateKey: myPrivateKey, publicKey: otherPublicKey);
+        KeyAgreement.get(privateKey: _myPrivateKey, publicKey: _otherPublicKey);
     var secret = await keyAgreement.generateSymmetricKey();
 
     var hkdfReader = pc.HKDFKeyDerivator(pc.SHA256Digest());
@@ -38,15 +45,16 @@ class SessionEncryptor {
         Uint8List.fromList(sessionTranscriptBytes), utf8.encode('SKDevice')));
     var d = hkdfDevice.process(Uint8List.fromList([]));
 
-    if (mdocRole == MdocRole.mdocReader) {
-      encryptionKey = r.toList();
-      decryptionKey = d.toList();
+    if (_mdocRole == MdocRole.mdocReader) {
+      _encryptionKey = r.toList();
+      _decryptionKey = d.toList();
     } else {
-      encryptionKey = d.toList();
-      decryptionKey = r.toList();
+      _encryptionKey = d.toList();
+      _decryptionKey = r.toList();
     }
   }
 
+  /// Decrypts the message in [encryptedData]
   Future<List<int>> decrypt(List<int> encryptedData) async {
     var iv = Uint8List.fromList([
       0,
@@ -56,32 +64,33 @@ class SessionEncryptor {
       0,
       0,
       0,
-      mdocRole == MdocRole.mdocReader ? 1 : 0,
+      _mdocRole == MdocRole.mdocReader ? 1 : 0,
       0,
       0,
       0,
-      counterDecrypt
+      _counterDecrypt
     ]);
 
-    if (decryptionKey == null) {
+    if (_decryptionKey == null) {
       throw Exception(
           'No decryption Key generated. Use generateKeys() beforehand.');
     }
 
-    algorithm.init(
+    _algorithm.init(
         false,
         pc.AEADParameters(
-          pc.KeyParameter(Uint8List.fromList(decryptionKey!)),
+          pc.KeyParameter(Uint8List.fromList(_decryptionKey!)),
           128,
           iv,
           Uint8List(0),
         ));
 
-    counterDecrypt++;
+    _counterDecrypt++;
 
-    return algorithm.process(Uint8List.fromList(encryptedData)).toList();
+    return _algorithm.process(Uint8List.fromList(encryptedData)).toList();
   }
 
+  /// Encrypts the message in [data].
   Future<List<int>> encrypt(List<int> data) async {
     var iv = Uint8List.fromList([
       0,
@@ -91,29 +100,35 @@ class SessionEncryptor {
       0,
       0,
       0,
-      mdocRole == MdocRole.mdocReader ? 0 : 1,
+      _mdocRole == MdocRole.mdocReader ? 0 : 1,
       0,
       0,
       0,
-      counterEncrypt
+      _counterEncrypt
     ]);
 
-    if (encryptionKey == null) {
+    if (_encryptionKey == null) {
       throw Exception(
           'No encryption Key generated. Use generateKeys() beforehand.');
     }
 
-    algorithm.init(
+    _algorithm.init(
         true,
         pc.AEADParameters(
-          pc.KeyParameter(Uint8List.fromList(encryptionKey!)),
+          pc.KeyParameter(Uint8List.fromList(_encryptionKey!)),
           128,
           iv,
           Uint8List(0),
         ));
 
-    counterEncrypt++;
+    _counterEncrypt++;
 
-    return algorithm.process(Uint8List.fromList(data));
+    return _algorithm.process(Uint8List.fromList(data));
   }
+
+  List<int>? get encryptionKey => _encryptionKey;
+
+  List<int>? get decryptionKey => _decryptionKey;
+
+  MdocRole get mdocRole => _mdocRole;
 }
