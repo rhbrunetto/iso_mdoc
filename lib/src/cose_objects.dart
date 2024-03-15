@@ -1,12 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:cbor/cbor.dart';
 import 'package:convert/convert.dart';
 import 'package:ed25519_edwards/ed25519_edwards.dart' as ed;
+import 'package:pointycastle/asn1.dart' as asn1;
 import 'package:pointycastle/export.dart' as pc;
 import 'package:x25519/x25519.dart' as x25519;
-import 'package:x509b/x509.dart';
 
 import 'crypto_generator.dart';
 import 'private_util.dart';
@@ -83,36 +84,68 @@ class CoseKey {
   }
 
   factory CoseKey.fromCertificate(String x509Certificate) {
-    var certIt = parsePem(
-        '-----BEGIN CERTIFICATE-----\n$x509Certificate\n-----END CERTIFICATE-----');
-    var cert = certIt.first as X509Certificate;
+    var p = asn1.ASN1Parser(base64Decode(x509Certificate));
+    var certSequence = p.nextObject() as asn1.ASN1Sequence;
+    var tbsCert = certSequence.elements!.first as asn1.ASN1Sequence;
+    var pubKeyIndex = 5;
+    // check if there is explicit version
+    if (tbsCert.elements!.first.tag == 160) {
+      pubKeyIndex = 6;
+    }
+    var pubKeyFromCert = asn1.ASN1SubjectPublicKeyInfo.fromSequence(
+        tbsCert.elements![pubKeyIndex] as asn1.ASN1Sequence);
+    var pubKeyBytes = pubKeyFromCert.subjectPublicKey.valueBytes!;
+    var pubKeyAlgorithm = pubKeyFromCert.algorithm.algorithm;
 
     CoseKey tmp;
-    if (cert.publicKey.algorithm == 'ecPublicKey') {
-      var oid = cert.publicKey.parameters as ObjectIdentifier;
+    if (pubKeyAlgorithm.readableName == 'ecPublicKey') {
+      var pubKeyParameter =
+          pubKeyFromCert.algorithm.parameters as asn1.ASN1ObjectIdentifier;
+      var compression = pubKeyBytes[1];
+      if (compression != 4) {
+        throw UnsupportedError(
+            'only uncompressed keys are supported: current compression: $compression');
+      }
       tmp = CoseKey(kty: CoseKeyType.ec2);
-      if (oid.name == 'prime256v1') {
+      if (pubKeyParameter.readableName == 'prime256v1') {
         tmp.crv = CoseCurve.p256;
-        tmp.x = cert.publicKey.publicKeyDer.sublist(1, 33);
-        tmp.y = cert.publicKey.publicKeyDer.sublist(33);
-      } else if (oid.name == 'secp384r1') {
+        tmp.x = pubKeyBytes.sublist(2, 34);
+        tmp.y = pubKeyBytes.sublist(34);
+      } else if (pubKeyParameter.readableName == 'secp384r1') {
         tmp.crv = CoseCurve.p384;
-        tmp.x = cert.publicKey.publicKeyDer.sublist(1, 49);
-        tmp.y = cert.publicKey.publicKeyDer.sublist(49);
-      } else if (oid.name == 'secp521r1') {
+        tmp.x = pubKeyBytes.sublist(2, 50);
+        tmp.y = pubKeyBytes.sublist(50);
+      } else if (pubKeyParameter.readableName == 'secp521r1') {
         tmp.crv = CoseCurve.p521;
-        tmp.x = cert.publicKey.publicKeyDer.sublist(2, 67);
-        tmp.y = cert.publicKey.publicKeyDer.sublist(68);
+        tmp.x = pubKeyBytes.sublist(2, 68);
+        tmp.y = pubKeyBytes.sublist(68);
+      } else if (pubKeyParameter.readableName == 'brainpoolP256r1') {
+        tmp.crv = CoseCurve.brainpoolP256r1;
+        tmp.x = pubKeyBytes.sublist(2, 34);
+        tmp.y = pubKeyBytes.sublist(34);
+      } else if (pubKeyParameter.readableName == 'brainpoolP320r1') {
+        tmp.crv = CoseCurve.brainpoolP320r1;
+        tmp.x = pubKeyBytes.sublist(2, 42);
+        tmp.y = pubKeyBytes.sublist(42);
+      } else if (pubKeyParameter.readableName == 'brainpoolP384r1') {
+        tmp.crv = CoseCurve.brainpoolP384r1;
+        tmp.x = pubKeyBytes.sublist(2, 50);
+        tmp.y = pubKeyBytes.sublist(50);
+      } else if (pubKeyParameter.readableName == 'brainpoolP512r1') {
+        tmp.crv = CoseCurve.brainpoolP512r1;
+        tmp.x = pubKeyBytes.sublist(2, 66);
+        tmp.y = pubKeyBytes.sublist(66);
       } else {
         throw Exception('Unknown or unsupported curve');
       }
-    } else if (cert.publicKey.algorithm == 'Ed25519') {
+    } else if (pubKeyAlgorithm.objectIdentifierAsString == '1.3.101.112') {
       tmp = CoseKey(
           kty: CoseKeyType.octetKeyPair,
           crv: CoseCurve.ed25519,
-          x: cert.publicKey.publicKeyDer);
+          x: pubKeyBytes.sublist(1));
     } else {
-      throw Exception('Unsupported Algorithm: ${cert.publicKey.algorithm}');
+      throw Exception(
+          'Unsupported Algorithm: ${pubKeyAlgorithm.readableName}/${pubKeyAlgorithm.objectIdentifierAsString}');
     }
 
     return tmp;
@@ -135,16 +168,7 @@ class CoseKey {
           d: key.privateKey,
           x: key.publicKey);
     } else {
-      final curveMap = {
-        CoseCurve.p256: pc.ECCurve_secp256r1(),
-        CoseCurve.p384: pc.ECCurve_secp384r1(),
-        CoseCurve.p521: pc.ECCurve_secp521r1(),
-        CoseCurve.brainpoolP256r1: pc.ECCurve_brainpoolp256r1(),
-        CoseCurve.brainpoolP320r1: pc.ECCurve_brainpoolp320r1(),
-        CoseCurve.brainpoolP384r1: pc.ECCurve_brainpoolp384r1(),
-        CoseCurve.brainpoolP512r1: pc.ECCurve_brainpoolp512r1()
-      };
-      var pcCurve = curveMap[curve];
+      var pcCurve = coseCurveToPointyCastleCurve[curve];
       if (pcCurve == null) {
         throw Exception('Unsupported curve: $curve');
       }
@@ -280,6 +304,31 @@ class CoseMac0 {
     ]);
 
     return cborEncode(macStructure);
+  }
+
+  void generateMac(MacGenerator generator,
+      {List<int>? externalAad, dynamic externalPayload}) {
+    if (generator.supportedCoseAlgorithm != protected.algorithm) {
+      throw Exception(
+          'Algorithm value in Header does not match supported algorithm of Mac-Generator');
+    }
+    mac = generator.generate(generateMacStructure(
+        externalPayload: externalPayload, externalAad: externalAad));
+  }
+
+  bool verify(MacGenerator generator,
+      {List<int>? externalAad, dynamic externalPayload}) {
+    if (generator.supportedCoseAlgorithm != protected.algorithm) {
+      throw Exception(
+          'Algorithm value in Header does not match supported algorithm of Mac-Generator');
+    }
+    if (mac == null) {
+      throw Exception('There is no mac to verify');
+    }
+    return generator.verify(
+        generateMacStructure(
+            externalPayload: externalPayload, externalAad: externalAad),
+        mac!);
   }
 
   CborList toCbor() {

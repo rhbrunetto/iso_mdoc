@@ -48,8 +48,9 @@ void main() async {
   });
 
   // Generate Reader-Auth. Feel free to also use the other provided certificates
-  var unprotected = CoseHeader(x509chain: base64Decode(readerCertEd25519));
-  var protected = CoseHeader(algorithm: CoseAlgorithm.edDSA);
+  var unprotected =
+      CoseHeader(x509chain: base64Decode(readerCertBrainpoolP256r1));
+  var protected = CoseHeader(algorithm: CoseAlgorithm.es256);
 
   var cs = CoseSign1(
     protected: protected,
@@ -63,7 +64,8 @@ void main() async {
 
   var enc = CborBytes(cborEncode(readerAuth.toReaderAuthBytes()));
   // If you try other certificates, change the used key according to used certificate
-  cs.sign(SignatureGenerator.get(readerKeyEd25519), externalPayload: enc);
+  cs.sign(SignatureGenerator.get(readerKeyBrainpoolP256r1),
+      externalPayload: enc);
 
   // Generate Request
   var request = DeviceRequest(
@@ -158,11 +160,13 @@ void main() async {
   i.items = revealedData;
 
   // Generate DeviceAuth (Mac / Signature)
+  //var signer = SignatureGenerator.get(holderKey);
+  var keyAgreement = KeyAgreement(
+      publicKey: decodedEstablishment.eReaderKey, privateKey: holderKey);
   var signedData = await generateDeviceSignature({},
-      decodedRequest.docRequests.first.itemsRequest.docType,
-      transcriptHolder,
-      holderKey,
-      readerEphemeralKey: decodedEstablishment.eReaderKey);
+      decodedRequest.docRequests.first.itemsRequest.docType, transcriptHolder,
+      // signer: signer,
+      keyAgreement: keyAgreement);
   var docToSend =
       Document(docType: m.docType, issuerSigned: i, deviceSigned: signedData);
 

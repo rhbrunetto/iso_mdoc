@@ -1,27 +1,8 @@
-import 'dart:async';
-import 'dart:convert';
-
 import 'package:cbor/cbor.dart';
 import 'package:convert/convert.dart';
 
 import 'cose_objects.dart';
-import 'crypto_generator.dart';
 import 'mdoc_response.dart';
-
-FutureOr<bool> verifyDocRequestSignature(
-    DocRequest docRequest, SessionTranscript sessionTranscript) {
-  var readerAuth = ReaderAuth(
-      sessionTranscript: sessionTranscript,
-      itemsRequestBytes: docRequest.itemsRequest.toItemsRequestBytes());
-
-  var enc = CborBytes(cborEncode(readerAuth.toReaderAuthBytes()));
-
-  var issuerPublicKey = CoseKey.fromCertificate(
-      base64Encode(docRequest.readerAuthSignature!.unprotected.x509chain!));
-
-  return docRequest.readerAuthSignature!
-      .verify(SignatureGenerator.get(issuerPublicKey), externalPayload: enc);
-}
 
 class SessionEstablishment {
   CoseKey eReaderKey;

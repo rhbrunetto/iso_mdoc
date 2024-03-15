@@ -82,8 +82,82 @@ void main() {
     expect(verifyMso(iss), isTrue);
   });
 
+  test('issuance all certs', () async {
+    var certs = [
+      readerCertEd25519,
+      readerCertP256,
+      readerCertP384,
+      readerCertP521,
+      readerCertBrainpoolP256r1,
+      readerCertBrainpoolP320r1,
+      readerCertBrainpollP384r1,
+      readerCertBrainpoolP512r1
+    ];
+    var keys = <CoseKey>[
+      readerKeyEd25519,
+      readerKeyP256,
+      readerKeyP384,
+      readerKeyP521,
+      readerKeyBrainpoolP256r1,
+      readerKeyBrainpoolP320r1,
+      readerKeyBrainpollP384r1,
+      readerKeyBrainpoolP521r1
+    ];
+
+    for (int i = 0; i < certs.length; i++) {
+      var givenName = IssuerSignedItem(
+          digestId: 1,
+          dataElementIdentifier: 'given_name',
+          dataElementValue: 'Max');
+      var familyName = IssuerSignedItem(
+          digestId: 2,
+          dataElementIdentifier: 'family_name',
+          dataElementValue: 'Mustermann');
+      var birthDate = IssuerSignedItem(
+          digestId: 3,
+          dataElementIdentifier: 'birth_date',
+          dataElementValue: DateTime(1992, 3, 15).toUtc());
+      var issueDate = IssuerSignedItem(
+          digestId: 4,
+          dataElementIdentifier: 'issue_date',
+          dataElementValue: DateTime.now().toUtc());
+      var expiryDate = IssuerSignedItem(
+          digestId: 5,
+          dataElementIdentifier: 'expiry_date',
+          dataElementValue: DateTime.now().add(Duration(days: 365)).toUtc());
+
+      var holderKey = CoseKey.generate(CoseCurve.p384);
+
+      var sig = await buildMso(
+          SignatureGenerator.get(keys[i]),
+          certs[i],
+          {
+            'org.iso.18013.5.1': [
+              givenName,
+              familyName,
+              birthDate,
+              issueDate,
+              expiryDate
+            ]
+          },
+          'SHA-256',
+          holderKey.toPublicKey(),
+          'docType');
+
+      expect(verifyMso(sig), isTrue);
+    }
+  });
+
   test('whole Process with signature, fixed Holder curve', () async {
-    var curves = [CoseCurve.p256, CoseCurve.p384, CoseCurve.p521];
+    var curves = [
+      CoseCurve.p256,
+      CoseCurve.p384,
+      CoseCurve.p521,
+      CoseCurve.brainpoolP256r1,
+      CoseCurve.brainpoolP320r1,
+      CoseCurve.brainpoolP384r1,
+      CoseCurve.brainpoolP512r1
+    ];
 
     for (var c in curves) {
       await _runPresentationProcess(c, CoseCurve.p256, false);
@@ -112,7 +186,11 @@ void main() {
       CoseCurve.p256,
       CoseCurve.p384,
       CoseCurve.p521,
-      CoseCurve.x25519
+      CoseCurve.x25519,
+      CoseCurve.brainpoolP256r1,
+      CoseCurve.brainpoolP320r1,
+      CoseCurve.brainpoolP384r1,
+      CoseCurve.brainpoolP512r1
     ];
 
     for (var c in curves) {
@@ -278,10 +356,12 @@ _runPresentationProcess(
 
   // Generate DeviceAuth (Mac / Signature)
   var signedData = await generateDeviceSignature({},
-      decodedRequest.docRequests.first.itemsRequest.docType,
-      transcriptHolder,
-      holderKey,
-      readerEphemeralKey: useMac ? decodedEstablishment.eReaderKey : null);
+      decodedRequest.docRequests.first.itemsRequest.docType, transcriptHolder,
+      signer: !useMac ? SignatureGenerator.get(holderKey) : null,
+      keyAgreement: useMac
+          ? KeyAgreement(
+              publicKey: decodedEstablishment.eReaderKey, privateKey: holderKey)
+          : null);
   var docToSend =
       Document(docType: m.docType, issuerSigned: i, deviceSigned: signedData);
 

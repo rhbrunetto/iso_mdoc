@@ -1,11 +1,9 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:cryptography/cryptography.dart' as crypto;
 import 'package:ed25519_edwards/ed25519_edwards.dart' as ed;
-import 'package:elliptic/ecdh.dart' as ecdh;
-import 'package:elliptic/elliptic.dart' as elliptic;
 import 'package:pointycastle/export.dart' as pc;
+import 'package:x25519/x25519.dart' as x25519;
 
 import 'cose_objects.dart';
 import 'private_util.dart';
@@ -235,18 +233,9 @@ abstract class KeyAgreement {
     if (publicKey.crv == CoseCurve.x25519 &&
         privateKey.crv == CoseCurve.x25519) {
       return X25519KeyAgreement(publicKey: publicKey, privateKey: privateKey);
-    } else if (publicKey.crv == CoseCurve.p256 &&
-        privateKey.crv == CoseCurve.p256) {
-      return P256KeyAgreement(publicKey: publicKey, privateKey: privateKey);
-    } else if (publicKey.crv == CoseCurve.p384 &&
-        privateKey.crv == CoseCurve.p384) {
-      return P384KeyAgreement(publicKey: publicKey, privateKey: privateKey);
-    } else if (publicKey.crv == CoseCurve.p521 &&
-        privateKey.crv == CoseCurve.p521) {
-      return P521KeyAgreement(publicKey: publicKey, privateKey: privateKey);
     } else {
-      throw Exception(
-          'Unsupported curve or different curves in keys (Public: ${publicKey.crv}, private: ${privateKey.crv})');
+      return PointyCastleKeyAgreement(
+          publicKey: publicKey, privateKey: privateKey);
     }
   }
 
@@ -260,66 +249,66 @@ class X25519KeyAgreement implements KeyAgreement {
 
   @override
   Future<List<int>> generateSymmetricKey() async {
-    var generator = crypto.X25519();
-    var private = crypto.SimpleKeyPairData(privateKey.d!,
-        publicKey: crypto.SimplePublicKey(privateKey.x!,
-            type: crypto.KeyPairType.x25519),
-        type: crypto.KeyPairType.x25519);
-    var public =
-        crypto.SimplePublicKey(publicKey.x!, type: crypto.KeyPairType.x25519);
-    var s = await generator.sharedSecretKey(
-        keyPair: private, remotePublicKey: public);
-    return s.extractBytes();
+    return x25519.X25519(privateKey.d!, publicKey.x!);
   }
 }
 
-class P256KeyAgreement implements KeyAgreement {
+class PointyCastleKeyAgreement implements KeyAgreement {
   CoseKey publicKey, privateKey;
 
-  P256KeyAgreement({required this.publicKey, required this.privateKey});
+  PointyCastleKeyAgreement({required this.publicKey, required this.privateKey});
 
   @override
   List<int> generateSymmetricKey() {
-    return ecdh.computeSecret(
-        elliptic.PrivateKey(elliptic.getP256(),
-            bytesToUnsignedInt(Uint8List.fromList(privateKey.d!))),
-        elliptic.PublicKey(
-            elliptic.getP256(),
-            bytesToUnsignedInt(Uint8List.fromList(publicKey.x ?? [])),
-            bytesToUnsignedInt(Uint8List.fromList(publicKey.y ?? []))));
+    if (publicKey.crv != privateKey.crv) {
+      throw ArgumentError('Keys have different curves');
+    }
+    var curve = coseCurveToPointyCastleCurve[privateKey.crv];
+    if (curve == null) {
+      throw UnsupportedError('Unsupported Curve: ${privateKey.crv}');
+    }
+    var private = pc.ECPrivateKey(bytesToUnsignedInt(privateKey.d!), curve);
+    var pubKey = pc.ECPublicKey(
+        curve.curve.createPoint(
+            bytesToUnsignedInt(publicKey.x!), bytesToUnsignedInt(publicKey.y!)),
+        curve);
+    var agree = pc.ECDHBasicAgreement();
+    agree.init(private);
+    var secret = agree.calculateAgreement(pubKey);
+    return unsignedIntToBytes(secret);
   }
 }
 
-class P384KeyAgreement implements KeyAgreement {
-  CoseKey publicKey, privateKey;
+abstract class MacGenerator {
+  int supportedCoseAlgorithm;
+  MacGenerator(this.supportedCoseAlgorithm);
 
-  P384KeyAgreement({required this.publicKey, required this.privateKey});
-
-  @override
-  List<int> generateSymmetricKey() {
-    return ecdh.computeSecret(
-        elliptic.PrivateKey(elliptic.getP384(),
-            bytesToUnsignedInt(Uint8List.fromList(privateKey.d!))),
-        elliptic.PublicKey(
-            elliptic.getP384(),
-            bytesToUnsignedInt(Uint8List.fromList(publicKey.x ?? [])),
-            bytesToUnsignedInt(Uint8List.fromList(publicKey.y ?? []))));
+  factory MacGenerator.get(int coseAlgorithm, Uint8List macKey) {
+    if (coseAlgorithm == CoseAlgorithm.hmac256) {
+      return HMacSha256Generator(macKey);
+    } else {
+      throw UnsupportedError('Unsupported Algorithm: $coseAlgorithm');
+    }
   }
+  List<int> generate(List<int> data);
+  bool verify(List<int> data, List<int> macToVerify);
 }
 
-class P521KeyAgreement implements KeyAgreement {
-  CoseKey publicKey, privateKey;
+class HMacSha256Generator extends MacGenerator {
+  Uint8List macKey;
+  final pc.HMac _hmac = pc.HMac(pc.SHA256Digest(), 64);
 
-  P521KeyAgreement({required this.publicKey, required this.privateKey});
+  HMacSha256Generator(this.macKey) : super(CoseAlgorithm.hmac256);
 
   @override
-  List<int> generateSymmetricKey() {
-    return ecdh.computeSecret(
-        elliptic.PrivateKey(elliptic.getP521(),
-            bytesToUnsignedInt(Uint8List.fromList(privateKey.d!))),
-        elliptic.PublicKey(
-            elliptic.getP521(),
-            bytesToUnsignedInt(Uint8List.fromList(publicKey.x ?? [])),
-            bytesToUnsignedInt(Uint8List.fromList(publicKey.y ?? []))));
+  List<int> generate(List<int> data) {
+    _hmac.init(pc.KeyParameter(macKey));
+    return _hmac.process(Uint8List.fromList(data)).toList();
+  }
+
+  @override
+  bool verify(List<int> data, List<int> macToVerify) {
+    var generated = generate(data);
+    return listEquals(generated, macToVerify);
   }
 }

@@ -1,131 +1,8 @@
-import 'dart:async';
-import 'dart:convert';
-
 import 'package:cbor/cbor.dart';
 import 'package:convert/convert.dart';
-import 'package:crypto/crypto.dart';
-import 'package:uuid/uuid.dart';
 
 import 'cose_objects.dart';
-import 'crypto_generator.dart';
-import 'mdoc_request.dart';
 import 'private_util.dart';
-
-Map<String, List<IssuerSignedItem>> getDataToReveal(
-    ItemsRequest requestedData, IssuerSignedObject data) {
-  if (MobileSecurityObject.fromCbor(data.issuerAuth.payload).docType !=
-      requestedData.docType) {
-    throw Exception('DocType does not match. No chance to find requested Data');
-  }
-  var toReveal = <String, List<IssuerSignedItem>>{};
-  for (var nameSpace in requestedData.nameSpaces.keys) {
-    var requestPerNameSpace = requestedData.nameSpaces[nameSpace];
-    var dataPerNameSpace = data.items[nameSpace];
-    if (dataPerNameSpace == null || dataPerNameSpace.isEmpty) {
-      continue;
-    }
-    var valuesFound = <IssuerSignedItem>[];
-    for (var property in requestPerNameSpace!.keys) {
-      IssuerSignedItem? found;
-      try {
-        found = dataPerNameSpace
-            .firstWhere((element) => element.dataElementIdentifier == property);
-      } catch (_) {}
-
-      if (found != null) {
-        valuesFound.add(found);
-      }
-    }
-
-    if (valuesFound.isNotEmpty) {
-      toReveal[nameSpace] = valuesFound;
-    }
-  }
-  return toReveal;
-}
-
-FutureOr<bool> verifyMso(IssuerSignedObject signed) {
-  var mso = MobileSecurityObject.fromCbor(signed.issuerAuth.payload);
-
-  // compare hashes
-  bool equal = true;
-  signed.items.forEach((key, value) {
-    for (var i in value) {
-      var expectedHash = mso.valueDigest[key]?[i.digestId];
-      if (expectedHash != null) {
-        var hash = sha256.convert(cborEncode(i.toIssuerSignedItemBytes()));
-        if (!listEquals(expectedHash, hash.bytes)) {
-          equal = false;
-          print('hash not match, key: ${i.digestId}');
-        }
-      }
-    }
-  });
-
-  if (!equal) {
-    print('hash not match');
-    return false;
-  }
-
-  var issuerPublicKey = CoseKey.fromCertificate(
-      base64Encode(signed.issuerAuth.unprotected.x509chain!));
-
-  return signed.issuerAuth.verify(SignatureGenerator.get(issuerPublicKey));
-}
-
-Future<IssuerSignedObject> buildMso(
-    SignatureGenerator signer,
-    String issuerCert,
-    Map<String, List<IssuerSignedItem>> inputData,
-    String hashAlg,
-    CoseKey deviceKey,
-    String docType) async {
-  Hash hasher;
-  if (hashAlg.toLowerCase() == 'sha-256') {
-    hasher = sha256;
-  } else if (hashAlg.toLowerCase() == 'sha-384') {
-    hasher = sha384;
-  } else if (hashAlg.toLowerCase() == 'sha-512') {
-    hasher = sha512;
-  } else {
-    hasher = sha256;
-  }
-
-  Map<String, Map<int, List<int>>> valueDigest = inputData.map((key, value) =>
-      MapEntry(
-          key,
-          value.asMap().map((key, value) => MapEntry(
-              value.digestId,
-              hasher
-                  .convert(cborEncode(value.toIssuerSignedItemBytes()))
-                  .bytes))));
-
-  var mso = MobileSecurityObject(
-      version: '1.0',
-      digestAlgorithm: hashAlg,
-      valueDigest: valueDigest,
-      deviceKeyInfo: DeviceKeyInfo(deviceKey: deviceKey),
-      docType: docType,
-      validityInfo: ValidityInfo(
-          signed: DateTime.now(),
-          validFrom: DateTime.now(),
-          validUntil: DateTime.now().add(Duration(days: 356))));
-
-  var msoBytes = mso.toMobileSecurityObjectBytes();
-
-  var unprotected = CoseHeader(x509chain: base64Decode(issuerCert));
-  var protected = CoseHeader(algorithm: signer.supportedCoseAlgorithm);
-
-  var cs = CoseSign1(
-      protected: protected,
-      unprotected: unprotected,
-      payload: hex.decode(msoBytes));
-  cs.sign(signer);
-
-  var issAuth = IssuerSignedObject(issuerAuth: cs, items: inputData);
-
-  return issAuth;
-}
 
 class MobileSecurityObject {
   // "1.0"
@@ -375,7 +252,7 @@ class IssuerSignedItem {
       required this.dataElementIdentifier,
       required this.dataElementValue,
       this.issuerSignedItemBytes})
-      : random = random ?? ascii.encode(Uuid().v4());
+      : random = random ?? getSecureRandom().nextBytes(32).toList();
 
   /// [cborData] might be a List<int> or a hex-String
   factory IssuerSignedItem.fromCbor(dynamic cborData) {
