@@ -285,11 +285,6 @@ class IssuerSignedItem {
       decoded = cbor.decode(decoded.toObject() as List<int>);
     }
 
-    var m = decoded as CborMap;
-
-    print(
-        '${m[CborValue('elementIdentifier')]}: ${m[CborValue('elementValue')].runtimeType}');
-
     Map<dynamic, dynamic> asMap = decoded.toObject() as Map;
 
     return IssuerSignedItem(
