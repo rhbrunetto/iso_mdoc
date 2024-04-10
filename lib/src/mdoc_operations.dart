@@ -280,14 +280,18 @@ Future<DeviceSignedObject> generateDeviceSignature(
 
 /// Verify signature of mdoc-reader
 ///
+/// returns null, if no signature is included
 /// Verification of reader-certificate is not included.
-FutureOr<bool> verifyDocRequestSignature(
+FutureOr<bool?> verifyDocRequestSignature(
     DocRequest docRequest, SessionTranscript sessionTranscript) {
   var readerAuth = ReaderAuth(
       sessionTranscript: sessionTranscript,
       itemsRequestBytes: docRequest.itemsRequest.toItemsRequestBytes());
 
   var enc = CborBytes(cborEncode(readerAuth.toReaderAuthBytes()));
+  if (docRequest.readerAuthSignature == null) {
+    return null;
+  }
 
   var issuerPublicKey = CoseKey.fromCertificate(
       base64Encode(docRequest.readerAuthSignature!.unprotected.x509chain!));

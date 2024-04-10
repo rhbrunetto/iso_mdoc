@@ -247,6 +247,11 @@ class DeviceKeyInfo {
   List<int> toEncodedCbor() {
     return cborEncode(toCbor());
   }
+
+  @override
+  String toString() {
+    return 'DeviceKeyInfo{deviceKey: $deviceKey, authorizedNameSpaces: $authorizedNameSpaces, authorizedDataElements: $authorizedDataElements, keyInfo: $keyInfo}';
+  }
 }
 
 class IssuerSignedItem {

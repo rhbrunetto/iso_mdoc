@@ -18,11 +18,13 @@ void main() async {
       SignatureGenerator.get(issuerP521Key),
       issuerP521Cert,
       {
-        'org.iso.18013.5.1': [givenName, familyName]
+        mdlNamespace: [givenName, familyName]
       },
       'SHA-256',
       CoseKey.generate(CoseCurve.p521),
-      'docType');
+      mdlDocType);
+
+  print(signed);
 
   // The IssuerSignedObject is cbor-encoded and transported to the holder,
   // e.g. using OpenId-Connect for Verifiable Credentials
@@ -35,4 +37,6 @@ void main() async {
   var m = MobileSecurityObject.fromCbor(
       decodedIssuerSignedObject.issuerAuth.payload);
   print(verifyMso(decodedIssuerSignedObject));
+
+  print(m);
 }

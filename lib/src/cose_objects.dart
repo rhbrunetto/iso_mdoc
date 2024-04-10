@@ -578,6 +578,11 @@ class CoseHeader {
   List<int> toEncodedCbor() {
     return cborEncode(toCbor());
   }
+
+  @override
+  String toString() {
+    return 'CoseHeader{algorithm: $algorithm, critical: $critical, contentType: $contentType, keyIdentifier: $keyIdentifier, iv: $iv, partialIv: $partialIv, x509chain: $x509chain}';
+  }
 }
 
 /// Helper class listing cose algorithm values (used in alg header parameter)

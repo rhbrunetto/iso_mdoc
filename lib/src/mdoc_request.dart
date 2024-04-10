@@ -124,8 +124,9 @@ class DocRequest {
     return DocRequest(
         itemsRequest: ItemsRequest.fromCbor(
             (asMap[CborString('itemsRequest')] as CborBytes).bytes),
-        readerAuthSignature:
-            CoseSign1.fromCbor(asMap[CborString('readerAuth')]));
+        readerAuthSignature: asMap.containsKey(CborString('readerAuth'))
+            ? CoseSign1.fromCbor(asMap[CborString('readerAuth')])
+            : null);
   }
 
   CborMap toCbor() {

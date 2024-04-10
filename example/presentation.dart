@@ -43,11 +43,11 @@ void main() async {
       keyBytes: readerEphemeralCosePub.toCoseKeyBytes());
 
   // Generate ItemsRequest
-  var items = ItemsRequest(docType: 'docType', nameSpaces: {
-    'org.iso.18013.5.1': {'family_name': true}
+  var items = ItemsRequest(docType: mdlDocType, nameSpaces: {
+    mdlNamespace: {'family_name': true}
   });
 
-  // Generate Reader-Auth. Feel free to also use the other provided certificates
+  // Generate Reader-Auth (Optional). Feel free to also use the other provided certificates
   var unprotected =
       CoseHeader(x509chain: base64Decode(readerCertBrainpoolP256r1));
   var protected = CoseHeader(algorithm: CoseAlgorithm.es256);
@@ -105,8 +105,14 @@ void main() async {
   var decodedRequest = DeviceRequest.fromCbor(decryptedRequest);
 
   // Check Signature
-  print(
-      '''Is DocRequest correct: ${verifyDocRequestSignature(decodedRequest.docRequests.first, transcriptHolder)}''');
+  for (var docRequest in decodedRequest.docRequests) {
+    if (docRequest.readerAuthSignature != null) {
+      print(
+          '''Is DocRequest correct: ${verifyDocRequestSignature(docRequest, transcriptHolder)}''');
+    } else {
+      print('No reader signature');
+    }
+  }
 
   // Search Credential (or generate ;) )
   var givenName = IssuerSignedItem(
@@ -136,17 +142,11 @@ void main() async {
       SignatureGenerator.get(issuerP521Key),
       issuerP521Cert,
       {
-        'org.iso.18013.5.1': [
-          givenName,
-          familyName,
-          birthDate,
-          issueDate,
-          expiryDate
-        ]
+        mdlNamespace: [givenName, familyName, birthDate, issueDate, expiryDate]
       },
       'SHA-256',
       holderKey.toPublicKey(),
-      'docType');
+      mdlDocType);
 
   print('Is issued credential correct: ${verifyMso(sig)}');
   var c = sig.toCbor();
