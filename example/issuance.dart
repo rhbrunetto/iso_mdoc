@@ -12,13 +12,17 @@ void main() async {
       digestId: 2,
       dataElementIdentifier: 'family_name',
       dataElementValue: 'Mustermann');
+  var birthDate = IssuerSignedItem(
+      digestId: 3,
+      dataElementIdentifier: 'birth_date',
+      dataElementValue: FullDate(1992, 3, 15));
 
   // sign the claims
   var signed = await buildMso(
       SignatureGenerator.get(issuerP521Key),
       issuerP521Cert,
       {
-        mdlNamespace: [givenName, familyName]
+        mdlNamespace: [givenName, familyName, birthDate]
       },
       'SHA-256',
       CoseKey.generate(CoseCurve.p521),

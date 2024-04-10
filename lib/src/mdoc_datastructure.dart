@@ -1,5 +1,6 @@
 import 'package:cbor/cbor.dart';
 import 'package:convert/convert.dart';
+import 'package:iso_mdoc/iso_mdoc.dart';
 
 import 'cose_objects.dart';
 import 'private_util.dart';
@@ -284,6 +285,11 @@ class IssuerSignedItem {
       decoded = cbor.decode(decoded.toObject() as List<int>);
     }
 
+    var m = decoded as CborMap;
+
+    print(
+        '${m[CborValue('elementIdentifier')]}: ${m[CborValue('elementValue')].runtimeType}');
+
     Map<dynamic, dynamic> asMap = decoded.toObject() as Map;
 
     return IssuerSignedItem(
@@ -299,7 +305,13 @@ class IssuerSignedItem {
       CborString('digestID'): CborSmallInt(digestId),
       CborString('random'): CborBytes(random),
       CborString('elementIdentifier'): CborString(dataElementIdentifier),
-      CborString('elementValue'): CborValue(dataElementValue)
+      CborString('elementValue'):
+          CborValue(dataElementValue, toEncodable: (value) {
+        if (value is FullDate) {
+          return CborString(value.toString(), tags: [1004]);
+        }
+        return null;
+      })
     });
   }
 
@@ -314,6 +326,34 @@ class IssuerSignedItem {
   @override
   String toString() {
     return 'IssuerSignedItem{digestId: $digestId, random: $random, dataElementIdentifier: $dataElementIdentifier, dataElementValue: $dataElementValue, issuerSignedItemBytes: $issuerSignedItemBytes}';
+  }
+}
+
+/// FullDate as per RFC 3339
+class FullDate {
+  int year, month, day;
+
+  FullDate(this.year, this.month, this.day);
+
+  factory FullDate.fromDateTime(DateTime date) {
+    return FullDate(date.year, date.month, date.day);
+  }
+
+  factory FullDate.fromString(String date) {
+    var split = date.split('-');
+
+    if (split.length != 3) {
+      throw Exception(
+          '3 elements separated with "-" expected, got ${split.length}');
+    }
+
+    return FullDate(
+        int.parse(split[0]), int.parse(split[1]), int.parse(split[2]));
+  }
+
+  @override
+  String toString() {
+    return '$year-$month-$day';
   }
 }
 

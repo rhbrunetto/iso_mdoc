@@ -126,15 +126,16 @@ void main() async {
   var birthDate = IssuerSignedItem(
       digestId: 3,
       dataElementIdentifier: 'birth_date',
-      dataElementValue: DateTime(1992, 3, 15).toUtc());
+      dataElementValue: FullDate(1992, 3, 15));
   var issueDate = IssuerSignedItem(
       digestId: 4,
       dataElementIdentifier: 'issue_date',
-      dataElementValue: DateTime.now().toUtc());
+      dataElementValue: FullDate.fromDateTime(DateTime.now()));
   var expiryDate = IssuerSignedItem(
       digestId: 5,
       dataElementIdentifier: 'expiry_date',
-      dataElementValue: DateTime.now().add(Duration(days: 365)).toUtc());
+      dataElementValue:
+          FullDate.fromDateTime(DateTime.now().add(Duration(days: 365))));
 
   var holderKey = CoseKey.generate(CoseCurve.x25519);
 
