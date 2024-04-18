@@ -43,8 +43,10 @@ void main() async {
       keyBytes: readerEphemeralCosePub.toCoseKeyBytes());
 
   // Generate ItemsRequest
-  var items = ItemsRequest(docType: mdlDocType, nameSpaces: {
-    mdlNamespace: {'family_name': true}
+  var items = ItemsRequest(docType: MobileDriversLicense.docType, nameSpaces: {
+    MobileDriversLicense.namespace: {
+      MobileDriversLicense.familyNameIdentifier: true
+    }
   });
 
   // Generate Reader-Auth (Optional). Feel free to also use the other provided certificates
@@ -143,11 +145,17 @@ void main() async {
       SignatureGenerator.get(issuerP521Key),
       issuerP521Cert,
       {
-        mdlNamespace: [givenName, familyName, birthDate, issueDate, expiryDate]
+        MobileDriversLicense.namespace: [
+          givenName,
+          familyName,
+          birthDate,
+          issueDate,
+          expiryDate
+        ]
       },
       'SHA-256',
       holderKey.toPublicKey(),
-      mdlDocType);
+      MobileDriversLicense.docType);
 
   print('Is issued credential correct: ${verifyMso(sig)}');
   var c = sig.toCbor();

@@ -1,3 +1,7 @@
+## 1.2.0
+- add data classes for mdl and eu pid
+- move constants for namespace and doctype to these dataclasses
+
 ## 1.1.0
 
 - add constants for namespaces and docTypes

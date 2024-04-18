@@ -181,6 +181,137 @@ void main() {
             readerPrivateKey: reader),
         isTrue);
   });
+  test('mobile drivers license class', () async {
+    var mdl = MobileDriversLicense(
+        expiryDate: FullDate(2015, 12, 31),
+        issueDate: FullDate.fromDateTime(DateTime.now()),
+        weight: 80,
+        unDistinguishingSign: 'abhufwjbf',
+        signatureUsualMark: Uint8List.fromList([34, 78, 67]),
+        sex: 1,
+        residentState: 'DE',
+        residentPostalCode: '09648',
+        residentCountry: 'Germany',
+        residentCity: 'Mittweida',
+        residentAddress: 'Am Markt 1',
+        portraitCaptureDate: DateTime(2024, 2, 4),
+        portrait: Uint8List.fromList([89, 90, 78]),
+        nationality: 'DE',
+        issuingJurisdiction: 'Saxony',
+        issuingCountry: 'Germany',
+        issuingAuthority: 'Mittweida',
+        height: 180,
+        hairColour: HairColour.blond,
+        givenNameNationalCharacter: 'Max',
+        familyNameNationalCharacter: 'Mustermann',
+        eyeColour: EyeColour.dichromatic,
+        drivingPrivileges: [
+          DrivingPrivilege(
+              vehicleCategoryCode: 'B',
+              issueDate: FullDate(2017, 4, 13),
+              codes: [DrivingPrivilegeCode(code: '32')])
+        ],
+        documentNumber: 'abcdef',
+        birthPlace: 'Berlin',
+        birthDate: FullDate(1997, 5, 24),
+        ageBirthYear: 1997,
+        ageInYears: 27,
+        administrativeNumber: 'ghbg',
+        givenName: 'Max',
+        familyName: 'Mustermann');
+
+    mdl.generateAgeOverNN([16, 18, 21, 65, 67]);
+
+    expect(mdl.ageOverNN, {16: true, 18: true, 21: true, 65: false, 67: false});
+
+    var asItems = mdl.generateIssuerSignedItems();
+
+    var fromItems = MobileDriversLicense.fromIssuerSignedItems(asItems);
+
+    expect(asItems.keys, [MobileDriversLicense.namespace]);
+    expect(mdl.givenName, fromItems.givenName);
+    expect(mdl.signatureUsualMark, fromItems.signatureUsualMark);
+    expect(fromItems.ageOverNN,
+        {16: true, 18: true, 21: true, 65: false, 67: false});
+
+    var signed = await mdl.generateIssuerSignedObject(
+        SignatureGenerator.get(issuerP521Key),
+        issuerP521Cert,
+        CoseKey.generate(CoseCurve.p256));
+
+    var encoded = signed.toEncodedCbor();
+    var decoded = IssuerSignedObject.fromCbor(encoded);
+    var mso = MobileSecurityObject.fromCbor(decoded.issuerAuth.payload);
+
+    expect(mso.docType, MobileDriversLicense.docType);
+
+    var fromItems2 = MobileDriversLicense.fromIssuerSignedItems(decoded.items);
+    expect(mdl.givenName, fromItems2.givenName);
+    expect(mdl.signatureUsualMark, fromItems2.signatureUsualMark);
+    expect(fromItems2.ageOverNN,
+        {16: true, 18: true, 21: true, 65: false, 67: false});
+  });
+
+  test('eu pid class', () async {
+    var pid = EuPiData(
+        familyName: 'Mustermann',
+        issuingJurisdiction: 'Mittweida',
+        administrativeNumber: 'abcdefg1234',
+        documentNumber: 'xyz9876',
+        issuingCountry: 'DE',
+        issuingAuthority: 'Stadtverwaltung Mittweida',
+        expiryDate: FullDate(2025, 7, 9),
+        issuanceDate: FullDate(2024, 4, 18),
+        nationality: 'DE',
+        residentHouseNumber: '32',
+        residentStreet: 'Hauptstraße',
+        residentPostalCode: '09648',
+        residentCity: 'Mittweida',
+        residentState: 'Sachsen',
+        residentCountry: 'DE',
+        residentAddress: 'Hauptstraße 32, 09648 Mittweida',
+        birthCity: 'Mittweida',
+        birthCountry: 'DE',
+        birthState: 'Sachsen',
+        birthPlace: 'Mittweida',
+        givenNameBirth: 'Max',
+        familyNameBirth: 'Mustermann',
+        gender: 1,
+        ageBirthYear: 1997,
+        ageInYears: 27,
+        ageOver18: true,
+        birthDate: FullDate(1997, 3, 18),
+        givenName: 'Max');
+
+    pid.generateAgeOverNN([16, 18, 21, 65, 67]);
+
+    expect(pid.ageOverNN, {16: true, 21: true, 65: false, 67: false});
+    expect(pid.ageOverNN!.length, 4);
+
+    var asItems = pid.generateIssuerSignedItems();
+
+    var fromItems = EuPiData.fromIssuerSignedItems(asItems);
+
+    expect(asItems.keys, [EuPiData.namespace]);
+    expect(pid.givenName, fromItems.givenName);
+    expect(pid.issuingAuthority, fromItems.issuingAuthority);
+    expect(fromItems.ageOverNN, {16: true, 21: true, 65: false, 67: false});
+
+    var signed = await pid.generateIssuerSignedObject(
+        SignatureGenerator.get(issuerP521Key),
+        issuerP521Cert,
+        CoseKey.generate(CoseCurve.p256));
+
+    var encoded = signed.toEncodedCbor();
+    var decoded = IssuerSignedObject.fromCbor(encoded);
+    var mso = MobileSecurityObject.fromCbor(decoded.issuerAuth.payload);
+
+    expect(mso.docType, EuPiData.docType);
+
+    var fromItems2 = EuPiData.fromIssuerSignedItems(decoded.items);
+    expect(pid.givenName, fromItems2.givenName);
+    expect(fromItems2.ageOverNN, {16: true, 21: true, 65: false, 67: false});
+  });
 
   test('verify given mso', () {
     var decoded = hex.decode(response);
@@ -189,6 +320,10 @@ void main() {
     var doc = (((asMap as CborMap)[CborValue('documents')] as CborList).first
         as CborMap)[CborValue('issuerSigned')];
     var iss = IssuerSignedObject.fromCbor(doc);
+
+    var mdl = MobileDriversLicense.fromIssuerSignedItems(iss.items);
+
+    print(mdl);
 
     expect(verifyMso(iss), isTrue);
   });
