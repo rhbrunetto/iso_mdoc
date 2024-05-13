@@ -1,8 +1,13 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:cbor/cbor.dart';
 import 'package:convert/convert.dart';
+import 'package:pointycastle/export.dart' as pc;
 
 import 'cose_objects.dart';
 import 'mdoc_datastructure.dart';
+import 'private_util.dart';
 
 class DeviceResponse {
   String version;
@@ -255,14 +260,14 @@ class DeviceAuth {
 }
 
 class SessionTranscript {
-  CborBytes deviceEngagementBytes;
-  CborBytes keyBytes;
+  /// Required for proximity Flows in ISO/IEC 1803-5, but null for OID4VP flow in ISO/IEC 1803-7
+  CborBytes? deviceEngagementBytes;
+
+  /// Required for proximity Flows in ISO/IEC 1803-5, but null for OID4VP flow in ISO/IEC 1803-7
+  CborBytes? keyBytes;
   Handover? handover;
 
-  SessionTranscript(
-      {required this.deviceEngagementBytes,
-      required this.keyBytes,
-      this.handover});
+  SessionTranscript({this.deviceEngagementBytes, this.keyBytes, this.handover});
 
   /// Parse cbor encoded session transcript
   ///
@@ -286,11 +291,10 @@ class SessionTranscript {
       asList = decoded as CborList;
     }
 
-    print(asList[2] is CborList);
-
     return SessionTranscript(
-        deviceEngagementBytes: asList.first as CborBytes,
-        keyBytes: asList[1] as CborBytes,
+        deviceEngagementBytes:
+            asList.first == CborNull() ? null : asList.first as CborBytes,
+        keyBytes: asList[1] == CborNull() ? null : asList[1] as CborBytes,
         handover:
             asList.last is CborList ? Handover.fromCbor(asList.last) : null);
   }
@@ -301,8 +305,8 @@ class SessionTranscript {
 
   CborList toCbor() {
     return CborList([
-      deviceEngagementBytes,
-      keyBytes,
+      deviceEngagementBytes == null ? CborNull() : deviceEngagementBytes!,
+      keyBytes == null ? CborNull() : keyBytes!,
       handover == null ? CborNull() : handover!.toCbor()
     ]);
   }
@@ -312,18 +316,7 @@ class SessionTranscript {
   }
 }
 
-class Handover {
-  List<int> handoverSelectMessage;
-  List<int>? handoverRequestMessage;
-
-  Handover({required this.handoverSelectMessage, this.handoverRequestMessage});
-
-  /// Parse cbor encoded handover message
-  ///
-  /// [cborData] is allowed to be
-  /// - a hex encoded string containing cbor encoded data
-  /// - a List<int> of cbor encoded data
-  /// - a CborList
+abstract class Handover {
   factory Handover.fromCbor(dynamic cborData) {
     assert(
         cborData is String || cborData is List<int> || cborData is CborValue);
@@ -334,12 +327,45 @@ class Handover {
 
     var asList = decoded as CborList;
 
-    return Handover(
-        handoverSelectMessage: (asList.first as CborBytes).bytes,
-        handoverRequestMessage:
-            asList.last is CborBytes ? (asList.last as CborBytes).bytes : null);
+    if (asList.length == 2) {
+      return NFCHandover(
+          handoverSelectMessage: (asList.first as CborBytes).bytes,
+          handoverRequestMessage: asList.last is CborBytes
+              ? (asList.last as CborBytes).bytes
+              : null);
+    } else if (asList.length == 3) {
+      return OID4VPHandover(
+          clientIdHash: asList.first is CborList
+              ? (asList.first as CborList)
+                  .toList()
+                  .map((e) => (e as CborSmallInt).toInt())
+                  .toList()
+              : (asList.first as CborBytes).bytes,
+          responseUriHash: asList[1] is CborList
+              ? (asList[1] as CborList)
+                  .toList()
+                  .map((e) => (e as CborSmallInt).toInt())
+                  .toList()
+              : (asList[1] as CborBytes).bytes,
+          nonce: (asList.last as CborString).toString());
+    } else {
+      throw Exception();
+    }
   }
 
+  CborList toCbor();
+
+  List<int> toEncodedCbor();
+}
+
+class NFCHandover implements Handover {
+  List<int> handoverSelectMessage;
+  List<int>? handoverRequestMessage;
+
+  NFCHandover(
+      {required this.handoverSelectMessage, this.handoverRequestMessage});
+
+  @override
   CborList toCbor() {
     return CborList([
       CborBytes(handoverSelectMessage),
@@ -349,6 +375,55 @@ class Handover {
     ]);
   }
 
+  @override
+  List<int> toEncodedCbor() {
+    return cborEncode(toCbor());
+  }
+}
+
+class OID4VPHandover implements Handover {
+  List<int> clientIdHash, responseUriHash;
+  String nonce;
+
+  /// Only available, if the factory constructor fromValues is used
+  String? mdocGeneratedNonce;
+
+  OID4VPHandover(
+      {required this.clientIdHash,
+      required this.responseUriHash,
+      required this.nonce,
+      this.mdocGeneratedNonce});
+
+  factory OID4VPHandover.fromValues(
+      String clientId, String responseUri, String nonce,
+      [String? mdocGeneratedNonce]) {
+    Uint8List n;
+    if (mdocGeneratedNonce == null) {
+      var random = getSecureRandom();
+      n = random.nextBytes(16);
+    } else {
+      n = base64Decode(addPaddingToBase64(mdocGeneratedNonce));
+    }
+    pc.Digest hasher = pc.SHA256Digest();
+    List<int> cIdData = utf8.encode(clientId) + n;
+    List<int> responseUriData = utf8.encode(responseUri) + n;
+    return OID4VPHandover(
+        clientIdHash: hasher.process(Uint8List.fromList(cIdData)),
+        responseUriHash: hasher.process(Uint8List.fromList(responseUriData)),
+        nonce: nonce,
+        mdocGeneratedNonce: removePaddingFromBase64(base64UrlEncode(n)));
+  }
+
+  @override
+  CborList toCbor() {
+    return CborList([
+      CborBytes(clientIdHash),
+      CborBytes(responseUriHash),
+      CborString(nonce)
+    ]);
+  }
+
+  @override
   List<int> toEncodedCbor() {
     return cborEncode(toCbor());
   }

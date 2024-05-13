@@ -130,13 +130,21 @@ void main() {
     var st = SessionTranscript(
         deviceEngagementBytes: devEng.toDeviceEngagementBytes(),
         keyBytes: se.eReaderKey.toCoseKeyBytes(),
-        handover: Handover(
+        handover: NFCHandover(
             handoverSelectMessage: hex.decode(handoverSelect),
             handoverRequestMessage: hex.decode(handoverRequest)));
 
     var gen = hex
         .encode(Uint8List.fromList(cborEncode(st.toSessionTranscriptBytes())));
     expect(gen.toLowerCase(), sessionTranscriptBytes);
+  });
+
+  test('parse Session transcript', () {
+    var st = SessionTranscript.fromCbor(oid4vpSessionTranscript);
+    print(st);
+
+    var handover = Handover.fromCbor(oid4vpHandover);
+    print(handover);
   });
 
   test('encrypt/Decrypt with example Data', () async {
@@ -322,8 +330,6 @@ void main() {
     var iss = IssuerSignedObject.fromCbor(doc);
 
     var mdl = MobileDriversLicense.fromIssuerSignedItems(iss.items);
-
-    print(mdl);
 
     expect(verifyMso(iss), isTrue);
   });

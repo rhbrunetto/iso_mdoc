@@ -1,3 +1,6 @@
+## 1.3.0
+- add OID4VP Handover from ISO/IEC 18013-7
+
 ## 1.2.0
 - add data classes for mdl and eu pid
 - move constants for namespace and doctype to these dataclasses
