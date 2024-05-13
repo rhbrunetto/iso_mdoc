@@ -330,6 +330,7 @@ void main() {
     var iss = IssuerSignedObject.fromCbor(doc);
 
     var mdl = MobileDriversLicense.fromIssuerSignedItems(iss.items);
+    print(mdl);
 
     expect(verifyMso(iss), isTrue);
   });
