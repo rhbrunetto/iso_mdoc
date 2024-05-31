@@ -171,17 +171,23 @@ class MobileDriversLicense {
       if (item.dataElementIdentifier == birthDateIdentifier) {
         birthDate = item.dataElementValue is FullDate
             ? item.dataElementValue
-            : FullDate.fromString(item.dataElementValue);
+            : (item.dataElementValue is DateTime
+                ? FullDate.fromDateTime(item.dataElementValue)
+                : FullDate.fromString(item.dataElementValue));
       }
       if (item.dataElementIdentifier == expiryDateIdentifier) {
         expiryDate = item.dataElementValue is FullDate
             ? item.dataElementValue
-            : FullDate.fromString(item.dataElementValue);
+            : (item.dataElementValue is DateTime
+                ? FullDate.fromDateTime(item.dataElementValue)
+                : FullDate.fromString(item.dataElementValue));
       }
       if (item.dataElementIdentifier == issueDateIdentifier) {
         issueDate = item.dataElementValue is FullDate
             ? item.dataElementValue
-            : FullDate.fromString(item.dataElementValue);
+            : (item.dataElementValue is DateTime
+                ? FullDate.fromDateTime(item.dataElementValue)
+                : FullDate.fromString(item.dataElementValue));
       }
       if (item.dataElementIdentifier == portraitIdentifier) {
         portrait = Uint8List.fromList(item.dataElementValue);
@@ -811,7 +817,9 @@ class EuPiData {
       if (item.dataElementIdentifier == birthDateIdentifier) {
         birthDate = item.dataElementValue is FullDate
             ? item.dataElementValue
-            : FullDate.fromString(item.dataElementValue);
+            : (item.dataElementValue is DateTime
+                ? FullDate.fromDateTime(item.dataElementValue)
+                : FullDate.fromString(item.dataElementValue));
       }
       if (item.dataElementIdentifier == ageOver18Identifier) {
         ageOver18 = item.dataElementValue;
@@ -877,12 +885,16 @@ class EuPiData {
       if (item.dataElementIdentifier == expiryDateIdentifier) {
         expiryDate = item.dataElementValue is FullDate
             ? item.dataElementValue
-            : FullDate.fromString(item.dataElementValue);
+            : (item.dataElementValue is DateTime
+                ? FullDate.fromDateTime(item.dataElementValue)
+                : FullDate.fromString(item.dataElementValue));
       }
       if (item.dataElementIdentifier == issuanceDateIdentifier) {
         issuanceDate = item.dataElementValue is FullDate
             ? item.dataElementValue
-            : FullDate.fromString(item.dataElementValue);
+            : (item.dataElementValue is DateTime
+                ? FullDate.fromDateTime(item.dataElementValue)
+                : FullDate.fromString(item.dataElementValue));
       }
       if (item.dataElementIdentifier == administrativeNumberIdentifier) {
         administrativeNumber = item.dataElementValue;
