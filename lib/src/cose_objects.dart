@@ -614,6 +614,7 @@ class CoseAlgorithm {
   static final int chaCha30poly1305 = 24;
 }
 
+/// Helper class listing cose keytypes (used in kty header parameter)
 class CoseKeyType {
   static final int octetKeyPair = 1;
   static final int ec2 = 2;

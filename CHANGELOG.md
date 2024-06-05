@@ -1,3 +1,7 @@
+## 1.3.1 
+- fix dateTime parsing in data classes (thanks @imhafeez)
+- update lints to 4.0.0
+
 ## 1.3.0
 - add OID4VP Handover from ISO/IEC 18013-7
 

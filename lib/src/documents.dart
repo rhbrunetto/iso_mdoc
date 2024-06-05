@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:iso_mdoc/iso_mdoc.dart';
 
+/// Mobile Drivers License as per ISO/IEC 18013-5
 class MobileDriversLicense {
   static const String docType = 'org.iso.18013.5.1.mDL';
   static const String namespace = 'org.iso.18013.5.1';
