@@ -1,3 +1,6 @@
+## 1.4.0
+- change CoseHeader x509chain parameter from List<int> to List<List<int>> to hold a whole certificate chain
+
 ## 1.3.1 
 - fix dateTime parsing in data classes (thanks @imhafeez)
 - update lints to 4.0.0
