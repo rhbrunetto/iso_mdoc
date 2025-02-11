@@ -496,7 +496,7 @@ _runPresentationProcess(
   });
 
   // Generate Reader-Auth. Feel free to also use the other provided certificates
-  var unprotected = CoseHeader(x509chain: base64Decode(readerCertEd25519));
+  var unprotected = CoseHeader(x509chain: [base64Decode(readerCertEd25519)]);
   var protected = CoseHeader(algorithm: CoseAlgorithm.edDSA);
 
   var cs = CoseSign1(

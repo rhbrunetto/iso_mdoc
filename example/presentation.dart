@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:cbor/cbor.dart';
+import 'package:convert/convert.dart';
 import 'package:iso_mdoc/iso_mdoc.dart';
 
 import 'example_keys.dart';
@@ -24,6 +25,8 @@ void main() async {
                 centralClientModeId: [1, 4, 8, 0]))
       ]);
 
+  print(hex.encode(bleEngagement.toEncodedCbor()));
+
   // Encode for Qr-Code
   var qrData = bleEngagement.toUri();
 
@@ -35,6 +38,7 @@ void main() async {
   // check used Curve and generate Ephemeral Key
   var readerEphemeralCosePriv =
       CoseKey.generate(decodedEngagement.security.deviceKey!.crv!);
+  print(hex.encode(readerEphemeralCosePriv.toEncodedCbor()));
   var readerEphemeralCosePub = readerEphemeralCosePriv.toPublicKey();
 
   // Generate SessionTranscript
@@ -51,7 +55,7 @@ void main() async {
 
   // Generate Reader-Auth (Optional). Feel free to also use the other provided certificates
   var unprotected =
-      CoseHeader(x509chain: base64Decode(readerCertBrainpoolP256r1));
+      CoseHeader(x509chain: [base64Decode(readerCertBrainpoolP256r1).toList()]);
   var protected = CoseHeader(algorithm: CoseAlgorithm.es256);
 
   var cs = CoseSign1(
@@ -186,6 +190,8 @@ void main() async {
   var encryptedResponse =
       await holderEncryptor.encrypt(response.toEncodedCbor());
   var responseToSend = SessionData(encryptedData: encryptedResponse).toCbor();
+  print(hex
+      .encode(SessionData(encryptedData: encryptedResponse).toEncodedCbor()));
 
   // ---- MDoc - Reader -----
   // Decrypt Response

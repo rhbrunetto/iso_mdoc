@@ -514,7 +514,7 @@ class CoseHeader {
   List<int>? keyIdentifier;
   List<int>? iv;
   List<int>? partialIv;
-  List<int>? x509chain;
+  List<List<int>>? x509chain;
 
   static final int algorithmParameter = 1;
   static final int criticalParameter = 2;
@@ -550,11 +550,16 @@ class CoseHeader {
       asMap = decoded as CborMap;
     }
 
-    List<int>? x509chainTmp;
+    List<List<int>>? x509chainTmp;
     int? algTmp;
     if (asMap.containsKey(CborSmallInt(x509ChainParameter))) {
-      x509chainTmp =
-          (asMap[CborSmallInt(x509ChainParameter)] as CborBytes).bytes;
+      var x509chainData = asMap[CborSmallInt(x509ChainParameter)];
+      if (x509chainData is CborBytes) {
+        x509chainTmp = [x509chainData.bytes];
+      } else if (x509chainData is CborList) {
+        x509chainTmp =
+            x509chainData.toList().map((e) => (e as CborBytes).bytes).toList();
+      }
     }
 
     if (asMap.containsKey(CborSmallInt(algorithmParameter))) {
@@ -570,7 +575,12 @@ class CoseHeader {
       object[CborSmallInt(algorithmParameter)] = CborSmallInt(algorithm!);
     }
     if (x509chain != null) {
-      object[CborSmallInt(x509ChainParameter)] = CborBytes(x509chain!);
+      if (x509chain!.length == 1) {
+        object[CborSmallInt(x509ChainParameter)] = CborBytes(x509chain!.first);
+      } else {
+        object[CborSmallInt(x509ChainParameter)] =
+            CborList(x509chain!.map((e) => CborBytes(e)).toList());
+      }
     }
     return object;
   }

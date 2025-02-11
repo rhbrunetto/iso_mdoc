@@ -89,7 +89,7 @@ FutureOr<bool> verifyMso(IssuerSignedObject signed) {
   }
 
   var issuerPublicKey = CoseKey.fromCertificate(
-      base64Encode(signed.issuerAuth.unprotected.x509chain!));
+      base64Encode(signed.issuerAuth.unprotected.x509chain!.first));
 
   var verifier = SignatureGenerator.get(issuerPublicKey);
 
@@ -149,7 +149,7 @@ Future<IssuerSignedObject> buildMso(
 
   var msoBytes = mso.toMobileSecurityObjectBytes();
 
-  var unprotected = CoseHeader(x509chain: base64Decode(issuerCert));
+  var unprotected = CoseHeader(x509chain: [base64Decode(issuerCert)]);
   var protected = CoseHeader(algorithm: signer.supportedCoseAlgorithm);
 
   var cs = CoseSign1(
@@ -269,7 +269,7 @@ Future<DeviceSignedObject> generateDeviceSignature(
         protected: CoseHeader(algorithm: signer.supportedCoseAlgorithm),
         unprotected: CoseHeader(),
         payload: null);
-    sig.sign(signer, externalPayload: encDevAuth);
+    await sig.sign(signer, externalPayload: encDevAuth);
     signedData.deviceSignature = sig;
     return signedData;
   } else {
@@ -293,8 +293,8 @@ FutureOr<bool?> verifyDocRequestSignature(
     return null;
   }
 
-  var issuerPublicKey = CoseKey.fromCertificate(
-      base64Encode(docRequest.readerAuthSignature!.unprotected.x509chain!));
+  var issuerPublicKey = CoseKey.fromCertificate(base64Encode(
+      docRequest.readerAuthSignature!.unprotected.x509chain!.first));
 
   return docRequest.readerAuthSignature!
       .verify(SignatureGenerator.get(issuerPublicKey), externalPayload: enc);
