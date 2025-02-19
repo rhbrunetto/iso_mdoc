@@ -70,7 +70,7 @@ void main() async {
 
   var enc = CborBytes(cborEncode(readerAuth.toReaderAuthBytes()));
   // If you try other certificates, change the used key according to used certificate
-  cs.sign(SignatureGenerator.get(readerKeyBrainpoolP256r1),
+  await cs.sign(SignatureGenerator.get(readerKeyBrainpoolP256r1),
       externalPayload: enc);
 
   // Generate Request

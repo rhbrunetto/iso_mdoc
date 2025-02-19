@@ -8,36 +8,54 @@ void main() async {
   //---- 1 Issue using basic classes -----
   // The claims to include
   var random = Random.secure();
+  final int intMax = (pow(2, 31) - 1).toInt();
   var givenName = IssuerSignedItem(
-      digestId: random.nextInt(2 ^ 31 - 1),
+      digestId: random.nextInt(intMax),
       dataElementIdentifier: 'given_name',
       dataElementValue: 'Max');
   var familyName = IssuerSignedItem(
-      digestId: random.nextInt(2 ^ 31 - 1),
+      digestId: random.nextInt(intMax),
       dataElementIdentifier: 'family_name',
       dataElementValue: 'Mustermann');
   var birthDate = IssuerSignedItem(
-      digestId: random.nextInt(2 ^ 31 - 1),
+      digestId: random.nextInt(intMax),
       dataElementIdentifier: 'birth_date',
       dataElementValue: FullDate(1992, 3, 15));
+
+  var insuranceId = IssuerSignedItem(
+      digestId: random.nextInt(intMax),
+      dataElementIdentifier: 'insurance_number',
+      dataElementValue: 1234);
+  var insuranceTypes = IssuerSignedItem(
+      digestId: random.nextInt(intMax),
+      dataElementIdentifier: 'insurance_type',
+      dataElementValue: ['car', 'home']);
+
+  print(givenName);
+  print(familyName);
+  print(birthDate);
 
   // sign the claims
   var signed = await buildMso(
       SignatureGenerator.get(issuerP521Key),
       issuerP521Cert,
       {
-        MobileDriversLicense.namespace: [givenName, familyName, birthDate]
+        MobileDriversLicense.namespace: [givenName, familyName, birthDate],
+        'de.insurance.test': [insuranceId, insuranceTypes]
       },
       'SHA-256',
       CoseKey.generate(CoseCurve.p521),
-      MobileDriversLicense.docType);
+      'de.insurance.test.type');
 
   print(signed);
 
   // The IssuerSignedObject is cbor-encoded and transported to the holder,
   // e.g. using OpenId-Connect for Verifiable Credentials
   // (Issuance is not part of ISO/IEC 18013-5)
-  var encodedIssuerSignedObject = signed.toCbor();
+  var encodedIssuerSignedObject = signed.toEncodedCbor();
+  print(encodedIssuerSignedObject
+      .map((e) => e.toRadixString(16).padLeft(2, '0'))
+      .join());
 
   // The holder can decode the signed data and verify the signature
   var decodedIssuerSignedObject =

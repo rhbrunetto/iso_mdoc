@@ -156,7 +156,7 @@ Future<IssuerSignedObject> buildMso(
       protected: protected,
       unprotected: unprotected,
       payload: hex.decode(msoBytes));
-  cs.sign(signer);
+  await cs.sign(signer);
 
   var issAuth = IssuerSignedObject(issuerAuth: cs, items: inputData);
 

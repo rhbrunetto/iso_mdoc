@@ -1,3 +1,6 @@
+## 1.4.1
+- bugfix: await signing processes
+
 ## 1.4.0
 - change CoseHeader x509chain parameter from List<int> to List<List<int>> to hold a whole certificate chain
 
