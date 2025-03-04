@@ -450,7 +450,7 @@ class CoseSign1 {
       'Signature1',
       CborBytes(protectedEnc),
       CborBytes([]),
-      externalPayload ?? payload
+      externalPayload != null ? CborBytes(externalPayload) : CborBytes(payload)
     ];
     return hex.encode(Uint8List.fromList(cborEncode(CborValue(data))));
   }
