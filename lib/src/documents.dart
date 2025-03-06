@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:convert/convert.dart';
 import 'package:iso_mdoc/iso_mdoc.dart';
 
 /// Mobile Drivers License as per ISO/IEC 18013-5
@@ -191,7 +193,7 @@ class MobileDriversLicense {
                 : FullDate.fromString(item.dataElementValue));
       }
       if (item.dataElementIdentifier == portraitIdentifier) {
-        portrait = Uint8List.fromList(item.dataElementValue);
+        portrait = _parsePortraitData(item.dataElementValue);
       }
       if (item.dataElementIdentifier == drivingPrivilegesIdentifier) {
         var privList = item.dataElementValue;
@@ -1160,4 +1162,28 @@ class EuPiData {
   String toString() {
     return 'EuPiData{familyName: $familyName, givenName: $givenName, birthDate: $birthDate, ageOver18: $ageOver18, ageOverNN: $ageOverNN, ageInYears: $ageInYears, ageBirthYear: $ageBirthYear, gender: $gender, familyNameBirth: $familyNameBirth, givenNameBirth: $givenNameBirth, birthPlace: $birthPlace, birthState: $birthState, birthCountry: $birthCountry, birthCity: $birthCity, residentAddress: $residentAddress, residentCountry: $residentCountry, residentState: $residentState, residentCity: $residentCity, residentPostalCode: $residentPostalCode, residentStreet: $residentStreet, residentHouseNumber: $residentHouseNumber, nationality: $nationality, issuanceDate: $issuanceDate, expiryDate: $expiryDate, issuingAuthority: $issuingAuthority, issuingCountry: $issuingCountry, documentNumber: $documentNumber, administrativeNumber: $administrativeNumber, issuingJurisdiction: $issuingJurisdiction}';
   }
+}
+
+Uint8List _parsePortraitData(dynamic value) {
+  if (value is List<int>) {
+    return Uint8List.fromList(value);
+  }
+
+  Uint8List? tryParse(Uint8List Function() fn) {
+    try {
+      return fn();
+    } on Object {
+      return null;
+    }
+  }
+
+  if (value is String) {
+    final hexDecoded = tryParse(() => Uint8List.fromList(hex.decode(value)));
+    if (hexDecoded != null) return hexDecoded;
+
+    final base64Decoded = tryParse(() => base64.decode(value));
+    if (base64Decoded != null) return base64Decoded;
+  }
+
+  return Uint8List(0);
 }
