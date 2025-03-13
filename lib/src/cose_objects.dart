@@ -446,11 +446,15 @@ class CoseSign1 {
   /// Generates the intermediate data over which the signature is computed
   String generateIntermediate({dynamic externalPayload}) {
     var protectedEnc = protectedEncoded ?? protected.toEncodedCbor();
+    externalPayload ??= payload;
+    if(externalPayload is! CborBytes) {
+      externalPayload = CborBytes(externalPayload);
+    }
     var data = [
       'Signature1',
       CborBytes(protectedEnc),
       CborBytes([]),
-      externalPayload ?? payload
+      externalPayload,
     ];
     return hex.encode(Uint8List.fromList(cborEncode(CborValue(data))));
   }
