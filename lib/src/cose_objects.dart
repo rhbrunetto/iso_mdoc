@@ -42,7 +42,7 @@ class CoseKey {
   ///
   /// [cborData] is allowed to be
   /// - a hex encoded string containing cbor encoded data
-  /// - a List<int> of cbor encoded data
+  /// - a `List<int>` of cbor encoded data
   /// - a CborMap
   /// - CborBytes with tag 24, which means that these bytes are a cbor encoded value
   factory CoseKey.fromCbor(dynamic cborData) {
@@ -192,14 +192,11 @@ class CoseKey {
       tmp = CoseKey(
           kty: CoseKeyType.ec2,
           crv: curve,
-          x: unsignedIntToBytes(
-                  (newKey.publicKey as pc.ECPublicKey).Q!.x!.toBigInteger()!)
+          x: unsignedIntToBytes((newKey.publicKey).Q!.x!.toBigInteger()!)
               .toList(),
-          y: unsignedIntToBytes(
-                  (newKey.publicKey as pc.ECPublicKey).Q!.y!.toBigInteger()!)
+          y: unsignedIntToBytes((newKey.publicKey).Q!.y!.toBigInteger()!)
               .toList(),
-          d: unsignedIntToBytes((newKey.privateKey as pc.ECPrivateKey).d!)
-              .toList());
+          d: unsignedIntToBytes((newKey.privateKey).d!).toList());
     }
 
     return tmp;
@@ -321,7 +318,7 @@ class CoseMac0 {
   ///
   /// [cborData] is allowed to be
   /// - a hex encoded string containing cbor encoded data
-  /// - a List<int> of cbor encoded data
+  /// - a `List<int>` of cbor encoded data
   /// - a CborList
   factory CoseMac0.fromCbor(dynamic cborData) {
     assert(
@@ -420,7 +417,7 @@ class CoseSign1 {
   ///
   /// [cborData] is allowed to be
   /// - a hex encoded string containing cbor encoded data
-  /// - a List<int> of cbor encoded data
+  /// - a `List<int>` of cbor encoded data
   /// - a CborList
   factory CoseSign1.fromCbor(dynamic cborData) {
     assert(cborData is String || cborData is List<int> || cborData is CborList);
@@ -447,7 +444,7 @@ class CoseSign1 {
   String generateIntermediate({dynamic externalPayload}) {
     var protectedEnc = protectedEncoded ?? protected.toEncodedCbor();
     externalPayload ??= payload;
-    if(externalPayload is! CborBytes) {
+    if (externalPayload is! CborBytes) {
       externalPayload = CborBytes(externalPayload);
     }
     var data = [
@@ -541,7 +538,7 @@ class CoseHeader {
   ///
   /// [cborData] is allowed to be
   /// - a hex encoded string containing cbor encoded data
-  /// - a List<int> of cbor encoded data
+  /// - a `List<int>` of cbor encoded data
   /// - a CborMap
   factory CoseHeader.fromCbor(dynamic cborData) {
     assert(cborData is String || cborData is List<int> || cborData is CborMap);
