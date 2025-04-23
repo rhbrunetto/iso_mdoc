@@ -25,7 +25,7 @@ class DeviceResponse {
   ///
   /// [cborData] is allowed to be
   /// - a hex encoded string containing cbor encoded data
-  /// - a List<int> of cbor encoded data
+  /// - a `List<int>` of cbor encoded data
   /// - a CborMap
   factory DeviceResponse.fromCbor(dynamic cborData) {
     assert(
@@ -102,7 +102,7 @@ class Document {
   ///
   /// [cborData] is allowed to be
   /// - a hex encoded string containing cbor encoded data
-  /// - a List<int> of cbor encoded data
+  /// - a `List<int>` of cbor encoded data
   /// - a CborMap
   factory Document.fromCbor(dynamic cborData) {
     assert(
@@ -172,7 +172,7 @@ class DeviceSignedObject {
   ///
   /// [cborData] is allowed to be
   /// - a hex encoded string containing cbor encoded data
-  /// - a List<int> of cbor encoded data
+  /// - a `List<int>` of cbor encoded data
   /// - a CborMap
   factory DeviceSignedObject.fromCbor(dynamic cborData) {
     assert(
@@ -273,7 +273,7 @@ class SessionTranscript {
   ///
   /// [cborData] is allowed to be
   /// - a hex encoded string containing cbor encoded data
-  /// - a List<int> of cbor encoded data
+  /// - a `List<int>` of cbor encoded data
   /// - a CborList
   /// - CborBytes with tag 24, which means that these bytes are a cbor encoded value
   factory SessionTranscript.fromCbor(dynamic cborData) {
@@ -439,7 +439,7 @@ class SessionData {
   ///
   /// [cborData] is allowed to be
   /// - a hex encoded string containing cbor encoded data
-  /// - a List<int> of cbor encoded data
+  /// - a `List<int>` of cbor encoded data
   /// - a CborMap
   factory SessionData.fromCbor(dynamic cborData) {
     assert(

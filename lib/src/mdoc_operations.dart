@@ -51,7 +51,6 @@ Map<String, List<IssuerSignedItem>> getDataToReveal(
 ///
 /// This verifications includes checking the hashes of the data items,
 /// but not the verification of the issuer certificate.
-
 FutureOr<bool> verifyMso(IssuerSignedObject signed) {
   var mso = MobileSecurityObject.fromCbor(signed.issuerAuth.payload);
   pc.Digest hasher;

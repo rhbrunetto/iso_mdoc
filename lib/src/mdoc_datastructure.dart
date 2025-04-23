@@ -14,10 +14,10 @@ class MobileSecurityObject {
 
   /// Hash values ordered by namespace and digestID
   ///
-  ///{
+  ///```{
   /// 'namespace1' : {0: [1, 2], 1: [3, 4]},
   /// 'namespace2' : {0: [4, 6], 1: [7, 8]}
-  /// }
+  /// }```
   Map<String, Map<int, List<int>>> valueDigest;
   DeviceKeyInfo deviceKeyInfo;
   String docType;
@@ -37,7 +37,7 @@ class MobileSecurityObject {
   ///
   /// [cborData] is allowed to be
   /// - a hex encoded string containing cbor encoded data
-  /// - a List<int> of cbor encoded data
+  /// - a `List<int>` of cbor encoded data
   /// - a CborMap
   /// - CborBytes with tag 24, which means that these bytes are a cbor encoded value
   factory MobileSecurityObject.fromCbor(dynamic cborData) {
@@ -271,7 +271,7 @@ class IssuerSignedItem {
       this.issuerSignedItemBytes})
       : random = random ?? getSecureRandom().nextBytes(32).toList();
 
-  /// [cborData] might be a List<int> or a hex-String
+  /// [cborData] might be a `List<int>` or a hex-String
   factory IssuerSignedItem.fromCbor(dynamic cborData) {
     assert(
         cborData is String || cborData is List<int> || cborData is CborValue);

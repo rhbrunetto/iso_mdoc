@@ -31,7 +31,7 @@ class DeviceEngagement {
   ///
   /// [cborData] is allowed to be
   /// - a hex encoded string containing cbor encoded data
-  /// - a List<int> of cbor encoded data
+  /// - a `List<int>` of cbor encoded data
   /// - a CborMap
   factory DeviceEngagement.fromCbor(dynamic cborData) {
     assert(
@@ -141,7 +141,7 @@ class Security {
   ///
   /// [cborData] is allowed to be
   /// - a hex encoded string containing cbor encoded data
-  /// - a List<int> of cbor encoded data
+  /// - a `List<int>` of cbor encoded data
   /// - a CborList
   factory Security.fromCbor(dynamic cborData) {
     assert(
@@ -194,7 +194,7 @@ class DeviceRetrievalMethod {
   ///
   /// [cborData] is allowed to be
   /// - a hex encoded string containing cbor encoded data
-  /// - a List<int> of cbor encoded data
+  /// - a `List<int>` of cbor encoded data
   /// - a CborList
   factory DeviceRetrievalMethod.fromCbor(dynamic cborData) {
     assert(
@@ -267,7 +267,7 @@ class WifiOptions extends RetrievalOptions {
   ///
   /// [cborData] is allowed to be
   /// - a hex encoded string containing cbor encoded data
-  /// - a List<int> of cbor encoded data
+  /// - a `List<int>` of cbor encoded data
   /// - a CborMap
   factory WifiOptions.fromCbor(dynamic cborData) {
     assert(
@@ -331,7 +331,7 @@ class BLEOptions extends RetrievalOptions {
   ///
   /// [cborData] is allowed to be
   /// - a hex encoded string containing cbor encoded data
-  /// - a List<int> of cbor encoded data
+  /// - a `List<int>` of cbor encoded data
   /// - a CborMap
   factory BLEOptions.fromCbor(dynamic cborData) {
     assert(
@@ -387,7 +387,7 @@ class NfcOptions extends RetrievalOptions {
   ///
   /// [cborData] is allowed to be
   /// - a hex encoded string containing cbor encoded data
-  /// - a List<int> of cbor encoded data
+  /// - a `List<int>` of cbor encoded data
   /// - a CborMap
   factory NfcOptions.fromCbor(dynamic cborData) {
     assert(
@@ -427,7 +427,7 @@ class ServerRetrievalMethod {
   ///
   /// [cborData] is allowed to be
   /// - a hex encoded string containing cbor encoded data
-  /// - a List<int> of cbor encoded data
+  /// - a `List<int>` of cbor encoded data
   /// - a CborMap
   factory ServerRetrievalMethod.fromCbor(dynamic cborData) {
     assert(
@@ -479,7 +479,7 @@ class ApiInfo {
   ///
   /// [cborData] is allowed to be
   /// - a hex encoded string containing cbor encoded data
-  /// - a List<int> of cbor encoded data
+  /// - a `List<int>` of cbor encoded data
   /// - a CborList
   factory ApiInfo.fromCbor(dynamic cborData) {
     assert(

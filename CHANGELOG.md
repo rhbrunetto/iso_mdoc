@@ -1,3 +1,7 @@
+## 1.5.0
+- payload in sig_structure of cose_sign1 is always casted to CborBytes (thanks to @LuigiFiorillo)
+- update pointyCastle to 4.0.0
+
 ## 1.4.1
 - bugfix: await signing processes
 

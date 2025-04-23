@@ -15,7 +15,7 @@ class SessionEstablishment {
   ///
   /// [cborData] is allowed to be
   /// - a hex encoded string containing cbor encoded data
-  /// - a List<int> of cbor encoded data
+  /// - a `List<int>` of cbor encoded data
   /// - a CborMap
   factory SessionEstablishment.fromCbor(dynamic cborData) {
     assert(
@@ -58,7 +58,7 @@ class DeviceRequest {
   ///
   /// [cborData] is allowed to be
   /// - a hex encoded string containing cbor encoded data
-  /// - a List<int> of cbor encoded data
+  /// - a `List<int>` of cbor encoded data
   /// - a CborMap
   factory DeviceRequest.fromCbor(dynamic cborData) {
     assert(
@@ -110,7 +110,7 @@ class DocRequest {
   ///
   /// [cborData] is allowed to be
   /// - a hex encoded string containing cbor encoded data
-  /// - a List<int> of cbor encoded data
+  /// - a `List<int>` of cbor encoded data
   /// - a CborMap
   factory DocRequest.fromCbor(dynamic cborData) {
     assert(
@@ -163,7 +163,7 @@ class ItemsRequest {
   ///
   /// [cborData] is allowed to be
   /// - a hex encoded string containing cbor encoded data
-  /// - a List<int> of cbor encoded data
+  /// - a `List<int>` of cbor encoded data
   /// - a CborMap
   factory ItemsRequest.fromCbor(dynamic cborData) {
     assert(
