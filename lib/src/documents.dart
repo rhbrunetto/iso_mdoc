@@ -236,21 +236,19 @@ class MobileDriversLicense {
         givenNameNationalCharacter = item.dataElementValue;
       }
       if (item.dataElementIdentifier == sexIdentifier) {
-        sex = item.dataElementValue;
+        sex = _tryParseInt(item.dataElementValue);
       }
       if (item.dataElementIdentifier == heightIdentifier) {
-        height = item.dataElementValue is String
-            ? int.tryParse(item.dataElementValue)
-            : item.dataElementValue;
+        height = _tryParseInt(item.dataElementValue);
       }
       if (item.dataElementIdentifier == weightIdentifier) {
-        weight = item.dataElementValue;
+        weight = _tryParseInt(item.dataElementValue);
       }
       if (item.dataElementIdentifier == ageInYearsIdentifier) {
-        ageInYears = item.dataElementValue;
+        ageInYears = _tryParseInt(item.dataElementValue);
       }
       if (item.dataElementIdentifier == ageBirthYearIdentifier) {
-        ageBirthYear = item.dataElementValue;
+        ageBirthYear = _tryParseInt(item.dataElementValue);
       }
       if (item.dataElementIdentifier == eyeColourIdentifier) {
         eyeColour = EyeColour.values.asNameMap()[item.dataElementValue];
@@ -1188,4 +1186,11 @@ Uint8List _parsePortraitData(dynamic value) {
   }
 
   return Uint8List(0);
+}
+
+int? _tryParseInt(dynamic value) {
+  if (value == null) return null;
+  if (value is int) return value;
+
+  return int.tryParse(value.toString());
 }
