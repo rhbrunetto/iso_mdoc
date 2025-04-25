@@ -239,7 +239,9 @@ class MobileDriversLicense {
         sex = item.dataElementValue;
       }
       if (item.dataElementIdentifier == heightIdentifier) {
-        height = item.dataElementValue;
+        height = item.dataElementValue is String
+            ? int.tryParse(item.dataElementValue)
+            : item.dataElementValue;
       }
       if (item.dataElementIdentifier == weightIdentifier) {
         weight = item.dataElementValue;
