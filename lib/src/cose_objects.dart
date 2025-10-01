@@ -553,6 +553,8 @@ class CoseHeader {
 
     List<List<int>>? x509chainTmp;
     int? algTmp;
+    List<int>? kidTmp;
+
     if (asMap.containsKey(CborSmallInt(x509ChainParameter))) {
       var x509chainData = asMap[CborSmallInt(x509ChainParameter)];
       if (x509chainData is CborBytes) {
@@ -567,13 +569,24 @@ class CoseHeader {
       algTmp = (asMap[CborSmallInt(algorithmParameter)] as CborSmallInt).value;
     }
 
-    return CoseHeader(algorithm: algTmp, x509chain: x509chainTmp);
+    if (asMap.containsKey(CborSmallInt(keyIdParameter))) {
+      kidTmp = (asMap[CborSmallInt(keyIdParameter)] as CborBytes).bytes;
+    }
+
+    return CoseHeader(
+      algorithm: algTmp,
+      x509chain: x509chainTmp,
+      keyIdentifier: kidTmp,
+    );
   }
 
   CborMap toCbor() {
     var object = CborMap({});
     if (algorithm != null) {
       object[CborSmallInt(algorithmParameter)] = CborSmallInt(algorithm!);
+    }
+    if (keyIdentifier != null) {
+      object[CborSmallInt(keyIdParameter)] = CborBytes(keyIdentifier!);
     }
     if (x509chain != null) {
       if (x509chain!.length == 1) {
